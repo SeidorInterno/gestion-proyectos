@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum ProjectStatus {
+  PLANIFICACION
+  EN_PROGRESO
+  PAUSADO
+  COMPLETADO
+  CANCELADO
+}
+
+enum ActivityStatus {
+  PENDIENTE
+  EN_PROGRESO
+  COMPLETADO
+  BLOQUEADO
+}
+
+enum ParticipationType {
+  PREVIO_KICKOFF
+  CLIENTE
+  SEIDOR
+  RECUPERADOS
+  FIN_PROYECTO
+}
+
+enum RpaTool {
+  UIPATH
+  POWER_AUTOMATE
+  POWER_APPS
+  AUTOMATION_ANYWHERE
+  BLUE_PRISM
+  OTRO
+}
+
+enum PhaseType {
+  PREPARE
+  CONNECT
+  REALIZE
+  RUN
+}
+
+enum EventCategory {
+  BLOCKER
+  RISK
+  PAUSE
+  CHANGE
+  ISSUE
+  ABSENCE
+  MILESTONE
+}
+
+enum EventStatus {
+  ABIERTO
+  EN_PROGRESO
+  RESUELTO
+  CERRADO
+}
+
+enum Priority {
+  CRITICO
+  ALTO
+  MEDIO
+  BAJO
+}
+
+// Models
+
+// Tabla de Roles
+model Role {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  hasLevels   Boolean  @default(false)
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("roles")
+}
+
+// Tabla de Niveles (para Consultores)
+model ConsultorLevel {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("consultor_levels")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roleId           String
+  role             Role            @relation(fields: [roleId], references: [id])
+  consultorLevelId String?
+  consultorLevel   ConsultorLevel? @relation(fields: [consultorLevelId], references: [id])
+
+  projectsAsManager Project[]           @relation("ProjectManager")
+  assignments       ProjectAssignment[]
+  notifications     Notification[]
+  eventsAssigned    ProjectEvent[]      @relation("EventAssignee")
+  eventsReported    ProjectEvent[]      @relation("EventReporter")
+
+  @@map("users")
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  ruc       String?  @unique
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts Contact[]
+  projects Project[]
+
+  @@map("clients")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  position  String?
+  email     String?
+  phone     String?
+  isPrimary Boolean  @default(false)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  code        String?       @unique
+  status      ProjectStatus @default(PLANIFICACION)
+  tool        RpaTool       @default(UIPATH)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  clientId    String
+  client      Client        @relation(fields: [clientId], references: [id])
+  managerId   String?
+  manager     User?         @relation("ProjectManager", fields: [managerId], references: [id])
+
+  phases      Phase[]
+  assignments ProjectAssignment[]
+  events      ProjectEvent[]
+
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+model Phase {
+  id        String    @id @default(cuid())
+  name      String
+  type      PhaseType
+  order     Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  projectId  String
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activities Activity[]
+
+  @@map("phases")
+}
+
+model Activity {
+  id                  String            @id @default(cuid())
+  code                String
+  name                String
+  description         String?
+  order               Int
+  durationDays        Int               @default(1)
+  startDate           DateTime?
+  endDate             DateTime?
+  status              ActivityStatus    @default(PENDIENTE)
+  progress            Int               @default(0)
+  participationType   ParticipationType @default(SEIDOR)
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  phaseId   String
+  phase     Phase  @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  events    ProjectEvent[]
+
+  @@index([deletedAt])
+  @@map("activities")
+}
+
+model ProjectAssignment {
+  id                   String   @id @default(cuid())
+  allocationPercentage Int      @default(100)
+  hoursPerDay          Float    @default(8)
+  startDate            DateTime?
+  endDate              DateTime?
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@map("project_assignments")
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  date        DateTime
+  name        String
+  year        Int
+  recurring   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([date])
+  @@map("holidays")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  sentEmail Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ProjectEvent {
+  id          String        @id @default(cuid())
+  category    EventCategory
+  type        String
+  title       String
+  description String?
+
+  status      EventStatus   @default(ABIERTO)
+  priority    Priority?
+
+  startDate   DateTime      @default(now())
+  endDate     DateTime?
+  dueDate     DateTime?
+
+  impactDays  Int?
+  impactCost  Float?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignedToId  String?
+  assignedTo    User?     @relation("EventAssignee", fields: [assignedToId], references: [id])
+
+  reportedById  String
+  reportedBy    User      @relation("EventReporter", fields: [reportedById], references: [id])
+
+  activityId    String?
+  activity      Activity? @relation(fields: [activityId], references: [id])
+
+  @@index([deletedAt])
+  @@map("project_events")
+}
+
+// Audit Log para historial de cambios
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // CREATE, UPDATE, DELETE, STATUS_CHANGE
+  entity    String   // Project, Activity, Event, User, Client
+  entityId  String
+  userId    String
+  userName  String   // Cached for historical purposes
+  oldData   String?  // JSON string of previous state
+  newData   String?  // JSON string of new state
+  metadata  String?  // Additional context (IP, user agent, etc)
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
