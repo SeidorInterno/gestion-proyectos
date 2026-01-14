@@ -54,6 +54,7 @@ interface GanttChartWrapperProps {
   activeBlockers?: ActiveBlocker[];
   blockerPeriods?: BlockerPeriod[];
   projectId: string;
+  userRole?: string;
 }
 
 export function GanttChartWrapper({
@@ -64,6 +65,7 @@ export function GanttChartWrapper({
   activeBlockers = [],
   blockerPeriods = [],
   projectId,
+  userRole,
 }: GanttChartWrapperProps) {
   const router = useRouter();
 
@@ -91,6 +93,7 @@ export function GanttChartWrapper({
       activeBlockers={activeBlockers}
       blockerPeriods={blockerPeriods}
       projectId={projectId}
+      userRole={userRole}
       onRecalculateDates={handleRecalculateDates}
     />
   );

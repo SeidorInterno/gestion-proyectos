@@ -288,6 +288,7 @@ export default async function ProjectDetailPage({
                 holidays={holidays}
                 projectStatus={project.status}
                 projectId={project.id}
+                userRole={session?.user?.roleCode}
                 activeBlockers={project.events
                   .filter(
                     (e) =>

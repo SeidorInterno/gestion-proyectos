@@ -46,10 +46,10 @@ interface ActivityEditDialogProps {
 }
 
 const statusOptions = [
-  { value: "PENDIENTE", label: "Pendiente", color: "bg-gray-100" },
-  { value: "EN_PROGRESO", label: "En Progreso", color: "bg-blue-100" },
-  { value: "COMPLETADO", label: "Completado", color: "bg-green-100" },
-  { value: "BLOQUEADO", label: "Bloqueado", color: "bg-red-100" },
+  { value: "PENDIENTE", label: "Pendiente", color: "bg-gray-400" },
+  { value: "EN_PROGRESO", label: "En Progreso", color: "bg-blue-500" },
+  { value: "COMPLETADO", label: "Completado", color: "bg-green-500" },
+  { value: "BLOQUEADO", label: "Bloqueado", color: "bg-red-500" },
 ];
 
 export function ActivityEditDialog({
@@ -138,12 +138,12 @@ export function ActivityEditDialog({
 
         <div className="grid gap-4 py-4">
           {/* Info de la actividad */}
-          <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+          <div className="bg-muted/50 border rounded-lg p-3 space-y-2">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
                 {activity.code}
               </Badge>
-              <span className="font-medium text-sm">{activity.name}</span>
+              <span className="font-medium text-sm text-foreground">{activity.name}</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
