@@ -452,13 +452,13 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
                 </div>
 
                 {/* Resumen de duración y fecha estimada */}
-                <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                <div className="bg-muted/50 border rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Duracion total:</span>
                     </div>
-                    <span className="font-semibold">{totalDuration} dias laborales</span>
+                    <span className="font-semibold text-foreground">{totalDuration} dias laborales</span>
                   </div>
                   {prepareStartDate && (
                     <div className="flex items-center justify-between">
@@ -466,7 +466,7 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
                         <Calendar className="h-4 w-4 text-orange-500" />
                         <span className="text-muted-foreground">Inicio Prepare (aprox):</span>
                       </div>
-                      <span className="font-semibold text-orange-600">
+                      <span className="font-semibold text-orange-500">
                         {formatDateSpanish(prepareStartDate)}
                       </span>
                     </div>
@@ -474,10 +474,10 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
                   {estimatedEndDate && (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-blue-500" />
+                        <Calendar className="h-4 w-4 text-primary" />
                         <span className="text-muted-foreground">Fecha estimada de fin:</span>
                       </div>
-                      <span className="font-semibold text-blue-600">
+                      <span className="font-semibold text-primary">
                         {formatDateSpanish(estimatedEndDate)}
                       </span>
                     </div>
