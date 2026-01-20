@@ -97,19 +97,23 @@ export function NewUserButton({ variant = "default" }: NewUserButtonProps) {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
+    if (!formData.password || formData.password.length < 8) {
+        toast.error("La contraseña debe tener al menos 8 caracteres");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
       await createUser({
         name: formData.name,
         email: formData.email,
-        password: formData.password || undefined,
+        password: formData.password,
         roleId: formData.roleId,
         consultorLevelId: selectedRole?.hasLevels ? formData.consultorLevelId : null,
       });
 
       toast.success("Usuario creado exitosamente", {
-        description: formData.password
-          ? "El usuario puede iniciar sesión con la contraseña proporcionada"
-          : "Contraseña por defecto: seidor123",
+        description: "El usuario puede iniciar sesión con la contraseña proporcionada",
       });
       setOpen(false);
       setFormData({
