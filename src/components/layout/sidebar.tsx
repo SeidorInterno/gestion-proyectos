@@ -76,11 +76,13 @@ const adminMenuItems = [
     title: "Usuarios",
     href: "/dashboard/usuarios",
     icon: UserCog,
+    allowedRoles: ["MANAGER"] as RoleCode[],
   },
   {
     title: "Configuracion",
     href: "/dashboard/configuracion",
     icon: Settings,
+    allowedRoles: ["MANAGER"] as RoleCode[],
   },
 ];
 
