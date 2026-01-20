@@ -12,7 +12,7 @@ const loginSchema = z.object({
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma) as Adapter,
+  // No usar adapter con Credentials + JWT
   session: {
     strategy: "jwt",
   },
