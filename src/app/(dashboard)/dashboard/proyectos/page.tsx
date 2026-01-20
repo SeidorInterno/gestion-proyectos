@@ -93,7 +93,7 @@ export default async function ProyectosPage({
   const activeProjects = projects.filter((p) => p.status === "EN_PROGRESO").length;
   const completedProjects = projects.filter((p) => p.status === "COMPLETADO").length;
   const pausedProjects = projects.filter((p) => p.status === "PAUSADO").length;
-  const atRisk = projects.filter((p) => p.progressStatus === "behind" || p.progressStatus === "critical").length;
+  const atRisk = projects.filter((p) => p.progressStatus.status === "behind").length;
 
   const kpis = [
     { label: "Total", value: totalProjects, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
