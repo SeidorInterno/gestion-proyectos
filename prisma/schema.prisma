@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -69,6 +69,12 @@ enum Priority {
   ALTO
   MEDIO
   BAJO
+}
+
+enum ChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // Models
@@ -175,6 +181,11 @@ model Project {
   deletedAt   DateTime?
   deletedBy   String?
 
+  // Baseline (fechas originales planificadas)
+  baselineStartDate  DateTime?
+  baselineEndDate    DateTime?
+  baselineTotalDays  Int?
+
   clientId    String
   client      Client        @relation(fields: [clientId], references: [id])
   managerId   String?
@@ -219,6 +230,12 @@ model Activity {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   deletedAt           DateTime?
+
+  // Baseline (valores originales planificados)
+  baselineStartDate  DateTime?
+  baselineEndDate    DateTime?
+  baselineDuration   Int?
+  isLocked           Boolean           @default(true)
 
   phaseId   String
   phase     Phase  @relation(fields: [phaseId], references: [id], onDelete: Cascade)
@@ -291,6 +308,12 @@ model ProjectEvent {
 
   impactDays  Int?
   impactCost  Float?
+
+  // Control de Cambios (para categoría CHANGE)
+  changeRequestStatus  ChangeStatus?
+  approvedBy           String?
+  approvedAt           DateTime?
+  approvedCost         Float?
 
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

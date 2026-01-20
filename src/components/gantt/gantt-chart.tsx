@@ -18,6 +18,14 @@ import {
 } from "@/components/ui/tooltip";
 import { getParticipationColor, getParticipationLabel } from "@/lib/project-template";
 import { ActivityEditDialog } from "./activity-edit-dialog";
+import {
+  getActivityLevel,
+  getParentCode,
+  hasSubItems,
+  getSubItems,
+  getPhaseDateSummary,
+  getItemDateRange,
+} from "@/lib/activity-hierarchy";
 import { toast } from "@/hooks/use-toast";
 import {
   DndContext,
@@ -30,8 +38,8 @@ import {
   DragEndEvent,
   DragMoveEvent,
 } from "@dnd-kit/core";
-import { updateActivityDates } from "@/app/(dashboard)/dashboard/proyectos/actions";
-import { addWorkingDays } from "@/lib/date-utils";
+import { updateActivityDates, moveItemWithSubItems } from "@/app/(dashboard)/dashboard/proyectos/actions";
+import { addWorkingDays, getTodayInLima, normalizeDateOnly } from "@/lib/date-utils";
 
 interface Activity {
   id: string;
@@ -43,6 +51,10 @@ interface Activity {
   status: string;
   progress: number;
   participationType: string;
+  // Campos baseline para límites fijos
+  baselineStartDate?: Date | null;
+  baselineEndDate?: Date | null;
+  baselineDuration?: number | null;
 }
 
 interface Phase {
@@ -103,6 +115,8 @@ interface DraggableActivityBarProps {
   onEdit: (activity: Activity) => void;
   onResize: (activityId: string, edge: "left" | "right", daysDelta: number) => void;
   cellWidth: number;
+  isSubItem?: boolean;
+  allowResize?: boolean; // Controla si se puede redimensionar (cambiar duración)
 }
 
 function DraggableActivityBar({
@@ -112,6 +126,8 @@ function DraggableActivityBar({
   onEdit,
   onResize,
   cellWidth,
+  isSubItem = false,
+  allowResize = false, // Deshabilitado por defecto (protege duraciones)
 }: DraggableActivityBarProps) {
   const [isResizing, setIsResizing] = useState<"left" | "right" | null>(null);
   const [resizeDelta, setResizeDelta] = useState(0);
@@ -199,10 +215,12 @@ function DraggableActivityBar({
           {...attributes}
           {...(isResizing ? {} : listeners)}
           className={cn(
-            "absolute top-1 h-7 rounded-sm transition-shadow group",
+            "absolute rounded-sm transition-shadow group",
             participationColors[activity.participationType] || "bg-gray-400",
             (isDragging || isResizing) && "ring-2 ring-primary shadow-lg",
-            !isDragDisabled && !isResizing && "hover:ring-1 hover:ring-primary/50"
+            !isDragDisabled && !isResizing && "hover:ring-1 hover:ring-primary/50",
+            // Diferenciación visual: SubItems más pequeños y sutiles
+            isSubItem ? "top-2 h-5 opacity-85" : "top-1 h-7"
           )}
           style={style}
           onClick={(e) => {
@@ -212,8 +230,8 @@ function DraggableActivityBar({
             }
           }}
         >
-          {/* Handle de resize izquierdo */}
-          {!isDragDisabled && (
+          {/* Handle de resize izquierdo (solo si allowResize) */}
+          {!isDragDisabled && allowResize && (
             <div
               className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 hover:bg-white/30 transition-opacity z-10 rounded-l-sm"
               onMouseDown={(e) => handleResizeStart(e, "left")}
@@ -236,8 +254,8 @@ function DraggableActivityBar({
             </div>
           )}
 
-          {/* Handle de resize derecho */}
-          {!isDragDisabled && (
+          {/* Handle de resize derecho (solo si allowResize) */}
+          {!isDragDisabled && allowResize && (
             <div
               className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 hover:bg-white/30 transition-opacity z-10 rounded-r-sm"
               onMouseDown={(e) => handleResizeStart(e, "right")}
@@ -266,9 +284,78 @@ function DraggableActivityBar({
             )}
           </p>
           {!isDragDisabled && !isResizing && (
-            <p className="text-xs text-primary font-medium">Arrastra centro para mover, bordes para redimensionar</p>
+            <p className="text-xs text-primary font-medium">
+              {allowResize
+                ? "Arrastra centro para mover, bordes para redimensionar"
+                : "Arrastra para mover fechas"}
+            </p>
           )}
         </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// Componente de barra de resumen arrastrable (para Items con SubItems)
+interface DraggableSummaryBarProps {
+  activity: Activity;
+  barPosition: { left: number; width: number };
+  isDragDisabled: boolean;
+  dateRange: { startDate: Date; endDate: Date };
+}
+
+function DraggableSummaryBar({
+  activity,
+  barPosition,
+  isDragDisabled,
+  dateRange,
+}: DraggableSummaryBarProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `summary-${activity.id}`,
+    data: { activity, isSummaryBar: true, dateRange },
+    disabled: isDragDisabled,
+  });
+
+  const style: React.CSSProperties = {
+    left: barPosition.left + 2 + (transform?.x || 0),
+    width: barPosition.width,
+    opacity: isDragging ? 0.7 : 1,
+    cursor: isDragDisabled ? "default" : isDragging ? "grabbing" : "grab",
+    zIndex: isDragging ? 50 : 1,
+  };
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          className={cn(
+            "absolute top-1 h-7 rounded-sm bg-slate-400/50 dark:bg-slate-600/50 border-2 border-dashed border-slate-500/50 transition-shadow",
+            isDragging && "ring-2 ring-primary shadow-lg",
+            !isDragDisabled && "hover:ring-1 hover:ring-primary/50 hover:bg-slate-500/50"
+          )}
+          style={style}
+        >
+          {/* Indicador de drag */}
+          {!isDragDisabled && (
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <GripVertical className="h-3 w-3 text-slate-600 dark:text-slate-300" />
+            </div>
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <p className="font-medium">{activity.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {format(dateRange.startDate, "dd/MM/yyyy")} - {format(dateRange.endDate, "dd/MM/yyyy")}
+        </p>
+        {!isDragDisabled && (
+          <p className="text-xs text-primary font-medium">
+            Arrastra para mover Item y sus SubItems
+          </p>
+        )}
       </TooltipContent>
     </Tooltip>
   );
@@ -279,19 +366,27 @@ function DragPreview({
   activity,
   daysOffset,
   originalStartDate,
-  originalEndDate
+  originalEndDate,
+  isSummaryBar = false,
 }: {
   activity: Activity;
   daysOffset: number;
   originalStartDate: Date;
   originalEndDate: Date;
+  isSummaryBar?: boolean;
 }) {
   const newStart = addDays(originalStartDate, daysOffset);
   const newEnd = addDays(originalEndDate, daysOffset);
 
   return (
-    <div className="bg-card border-2 border-primary rounded-lg p-3 shadow-xl min-w-[200px]">
+    <div className={cn(
+      "bg-card border-2 rounded-lg p-3 shadow-xl min-w-[200px]",
+      isSummaryBar ? "border-slate-500" : "border-primary"
+    )}>
       <p className="font-medium text-sm text-foreground truncate">{activity.name}</p>
+      {isSummaryBar && (
+        <p className="text-xs text-muted-foreground">+ SubItems</p>
+      )}
       <div className="mt-2 space-y-1">
         <p className="text-xs text-muted-foreground">
           {format(newStart, "dd/MM/yyyy")} - {format(newEnd, "dd/MM/yyyy")}
@@ -326,6 +421,33 @@ export function GanttChart({
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(
     new Set(phases.map((p) => p.id))
   );
+
+  // Estado para Items expandidos (aquellos que tienen SubItems)
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => {
+    const itemsWithSubItems = new Set<string>();
+    phases.forEach((phase) => {
+      phase.activities.forEach((activity) => {
+        const level = getActivityLevel(activity.code);
+        if (level === 1 && hasSubItems(activity.code, phase.activities)) {
+          itemsWithSubItems.add(activity.code);
+        }
+      });
+    });
+    return itemsWithSubItems;
+  });
+
+  const toggleItem = (itemCode: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemCode)) {
+        next.delete(itemCode);
+      } else {
+        next.add(itemCode);
+      }
+      return next;
+    });
+  };
+
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -334,6 +456,8 @@ export function GanttChart({
   // Estado para drag-and-drop
   const [draggedActivity, setDraggedActivity] = useState<Activity | null>(null);
   const [currentDragOffset, setCurrentDragOffset] = useState(0);
+  const [isDraggingSummary, setIsDraggingSummary] = useState(false);
+  const [summaryDateRange, setSummaryDateRange] = useState<{ startDate: Date; endDate: Date } | null>(null);
 
   // Configurar sensores de drag (activar despues de 8px de movimiento)
   const sensors = useSensors(
@@ -371,9 +495,15 @@ export function GanttChart({
 
   // Handlers para drag-and-drop
   const handleDragStart = (event: DragStartEvent) => {
-    const { activity } = event.active.data.current as { activity: Activity };
-    setDraggedActivity(activity);
+    const data = event.active.data.current as {
+      activity: Activity;
+      isSummaryBar?: boolean;
+      dateRange?: { startDate: Date; endDate: Date };
+    };
+    setDraggedActivity(data.activity);
     setCurrentDragOffset(0);
+    setIsDraggingSummary(data.isSummaryBar || false);
+    setSummaryDateRange(data.dateRange || null);
   };
 
   const handleDragMove = (event: DragMoveEvent) => {
@@ -389,13 +519,23 @@ export function GanttChart({
     if (!delta || !draggedActivity) {
       setDraggedActivity(null);
       setCurrentDragOffset(0);
+      setIsDraggingSummary(false);
+      setSummaryDateRange(null);
       return;
     }
 
-    const { activity } = active.data.current as { activity: Activity };
+    const data = active.data.current as {
+      activity: Activity;
+      isSummaryBar?: boolean;
+      dateRange?: { startDate: Date; endDate: Date };
+    };
+    const activity = data.activity;
+    const isSummary = data.isSummaryBar || false;
 
     setDraggedActivity(null);
     setCurrentDragOffset(0);
+    setIsDraggingSummary(false);
+    setSummaryDateRange(null);
 
     // Ignorar movimientos pequeños (menos de medio día)
     if (Math.abs(delta.x) < CELL_WIDTH / 2) return;
@@ -404,31 +544,41 @@ export function GanttChart({
     const daysOffset = Math.round(delta.x / CELL_WIDTH);
     if (daysOffset === 0) return;
 
-    // Verificar que la actividad tiene fechas
-    if (!activity.startDate || !activity.endDate) {
-      toast({
-        title: "Error",
-        description: "La actividad no tiene fechas definidas",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Calcular nuevas fechas (usando días calendario, no laborales para simplificar)
-    const newStartDate = addDays(new Date(activity.startDate), daysOffset);
-    const newEndDate = addDays(new Date(activity.endDate), daysOffset);
-
     try {
-      await updateActivityDates(activity.id, newStartDate, newEndDate);
-      toast({
-        title: "Fechas actualizadas",
-        description: `Actividad movida ${daysOffset > 0 ? "+" : ""}${daysOffset} dias`,
-      });
+      if (isSummary) {
+        // Mover Item padre con todos sus SubItems
+        const result = await moveItemWithSubItems(activity.id, daysOffset);
+        toast({
+          title: "Item movido",
+          description: `${result.movedCount} actividades movidas ${daysOffset > 0 ? "+" : ""}${daysOffset} días`,
+        });
+      } else {
+        // Verificar que la actividad tiene fechas
+        if (!activity.startDate || !activity.endDate) {
+          toast({
+            title: "Error",
+            description: "La actividad no tiene fechas definidas",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Calcular nuevas fechas
+        const newStartDate = addDays(new Date(activity.startDate), daysOffset);
+        const newEndDate = addDays(new Date(activity.endDate), daysOffset);
+
+        await updateActivityDates(activity.id, newStartDate, newEndDate);
+        toast({
+          title: "Fechas actualizadas",
+          description: `Actividad movida ${daysOffset > 0 ? "+" : ""}${daysOffset} dias`,
+        });
+      }
       router.refresh();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No se pudieron actualizar las fechas.";
       toast({
         title: "Error",
-        description: "No se pudieron actualizar las fechas. Verifica tus permisos.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -437,27 +587,85 @@ export function GanttChart({
   const handleDragCancel = () => {
     setDraggedActivity(null);
     setCurrentDragOffset(0);
+    setIsDraggingSummary(false);
+    setSummaryDateRange(null);
   };
 
-  // Handler para redimensionar actividades
+  // Handler para redimensionar actividades (solo SubItems)
   const handleResize = async (activityId: string, edge: "left" | "right", daysDelta: number) => {
-    // Buscar la actividad
+    // Buscar la actividad y su fase
     let targetActivity: Activity | null = null;
+    let targetPhase: Phase | null = null;
     for (const phase of phases) {
       const found = phase.activities.find(a => a.id === activityId);
       if (found) {
         targetActivity = found;
+        targetPhase = phase;
         break;
       }
     }
 
-    if (!targetActivity || !targetActivity.startDate || !targetActivity.endDate) {
+    if (!targetActivity || !targetPhase || !targetActivity.startDate || !targetActivity.endDate) {
       toast({
         title: "Error",
         description: "No se pudo encontrar la actividad",
         variant: "destructive",
       });
       return;
+    }
+
+    // Verificar si es SubItem y obtener límites del padre
+    const level = getActivityLevel(targetActivity.code);
+    const isSubItem = level === 2;
+
+    if (isSubItem) {
+      const parentCode = getParentCode(targetActivity.code);
+      if (parentCode) {
+        // Obtener el Item padre y sus límites de fechas BASELINE (fijas)
+        const parentActivity = targetPhase.activities.find(a => a.code === parentCode);
+        if (parentActivity) {
+          // Usar fechas baseline si existen, sino las fechas actuales
+          const parentStart = parentActivity.baselineStartDate
+            ? new Date(parentActivity.baselineStartDate)
+            : parentActivity.startDate
+              ? new Date(parentActivity.startDate)
+              : null;
+          const parentEnd = parentActivity.baselineEndDate
+            ? new Date(parentActivity.baselineEndDate)
+            : parentActivity.endDate
+              ? new Date(parentActivity.endDate)
+              : null;
+
+          if (parentStart && parentEnd) {
+            let newStartDate = new Date(targetActivity.startDate);
+            let newEndDate = new Date(targetActivity.endDate);
+
+            if (edge === "left") {
+              newStartDate = addDays(newStartDate, daysDelta);
+            } else {
+              newEndDate = addDays(newEndDate, daysDelta);
+            }
+
+            // Validar que no exceda los límites FIJOS del padre
+            if (newStartDate < parentStart) {
+              toast({
+                title: "Límite alcanzado",
+                description: `El SubItem no puede iniciar antes que su Item padre (${format(parentStart, "dd/MM/yyyy")})`,
+                variant: "destructive",
+              });
+              return;
+            }
+            if (newEndDate > parentEnd) {
+              toast({
+                title: "Límite alcanzado",
+                description: `El SubItem no puede terminar después que su Item padre (${format(parentEnd, "dd/MM/yyyy")})`,
+                variant: "destructive",
+              });
+              return;
+            }
+          }
+        }
+      }
     }
 
     let newStartDate = new Date(targetActivity.startDate);
@@ -498,9 +706,13 @@ export function GanttChart({
       });
       router.refresh();
     } catch (error) {
+      // Mostrar mensaje de error del servidor (incluyendo límites de padre)
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "No se pudo actualizar la duracion. Verifica tus permisos.";
       toast({
-        title: "Error",
-        description: "No se pudo actualizar la duracion. Verifica tus permisos.",
+        title: "Límite alcanzado",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -508,16 +720,23 @@ export function GanttChart({
 
   // Calcular el rango de fechas del proyecto
   const { dateRange, totalDays } = useMemo(() => {
-    let minDate = new Date(startDate);
-    let maxDate = new Date(startDate);
+    // Normalizar fechas para evitar problemas de timezone
+    let minDate = normalizeDateOnly(new Date(startDate));
+    let maxDate = normalizeDateOnly(new Date(startDate));
 
     phases.forEach((phase) => {
       phase.activities.forEach((activity) => {
-        if (activity.startDate && activity.startDate < minDate) {
-          minDate = new Date(activity.startDate);
+        if (activity.startDate) {
+          const actStart = normalizeDateOnly(new Date(activity.startDate));
+          if (actStart < minDate) {
+            minDate = actStart;
+          }
         }
-        if (activity.endDate && activity.endDate > maxDate) {
-          maxDate = new Date(activity.endDate);
+        if (activity.endDate) {
+          const actEnd = normalizeDateOnly(new Date(activity.endDate));
+          if (actEnd > maxDate) {
+            maxDate = actEnd;
+          }
         }
       });
     });
@@ -553,10 +772,9 @@ export function GanttChart({
     return columns;
   }, [dateRange.start, totalDays, holidays]);
 
-  // Calcular posicion del dia actual
+  // Calcular posicion del dia actual (usando timezone Lima)
   const todayPosition = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayInLima();
     const todayIndex = differenceInDays(today, dateRange.start);
     const isVisible = todayIndex >= 0 && todayIndex < totalDays;
     return {
@@ -581,12 +799,12 @@ export function GanttChart({
       return null;
     }
 
-    const startOffset = differenceInDays(
-      new Date(activity.startDate),
-      dateRange.start
-    );
-    const duration =
-      differenceInDays(new Date(activity.endDate), new Date(activity.startDate)) + 1;
+    // Normalizar fechas para consistencia con dateRange
+    const actStart = normalizeDateOnly(new Date(activity.startDate));
+    const actEnd = normalizeDateOnly(new Date(activity.endDate));
+
+    const startOffset = differenceInDays(actStart, dateRange.start);
+    const duration = differenceInDays(actEnd, actStart) + 1;
 
     return {
       left: startOffset * CELL_WIDTH,
@@ -596,10 +814,9 @@ export function GanttChart({
 
   // Calcular posicion de las barras de bloqueo
   const getBlockerBarPosition = (blocker: BlockerPeriod) => {
-    const startOffset = differenceInDays(
-      new Date(blocker.startDate),
-      dateRange.start
-    );
+    // Normalizar fechas para consistencia
+    const blockerStart = normalizeDateOnly(new Date(blocker.startDate));
+    const startOffset = differenceInDays(blockerStart, dateRange.start);
 
     // Calcular duración: usar impactDays si está disponible, sino calcular desde fechas
     let duration: number;
@@ -608,10 +825,11 @@ export function GanttChart({
       duration = blocker.impactDays;
     } else if (blocker.endDate) {
       // Si está resuelto y no tiene impactDays, calcular desde las fechas reales
-      duration = differenceInDays(new Date(blocker.endDate), new Date(blocker.startDate)) + 1;
+      const blockerEnd = normalizeDateOnly(new Date(blocker.endDate));
+      duration = differenceInDays(blockerEnd, blockerStart) + 1;
     } else {
       // Blocker activo sin impactDays: mostrar hasta hoy
-      duration = differenceInDays(new Date(), new Date(blocker.startDate)) + 1;
+      duration = differenceInDays(getTodayInLima(), blockerStart) + 1;
     }
 
     // Mínimo 1 día de duración
@@ -628,17 +846,29 @@ export function GanttChart({
     };
   };
 
-  // Calcular altura total del contenido del Gantt
+  // Calcular altura total del contenido del Gantt (considerando jerarquía)
   const totalContentHeight = useMemo(() => {
     let height = 0;
     phases.forEach((phase) => {
       height += ROW_HEIGHT; // Fila de fase
       if (expandedPhases.has(phase.id)) {
-        height += phase.activities.length * ROW_HEIGHT;
+        phase.activities.forEach((activity) => {
+          const level = getActivityLevel(activity.code);
+          if (level <= 1) {
+            // Items y secciones siempre cuentan
+            height += ROW_HEIGHT;
+          } else {
+            // SubItems solo si el Item padre está expandido
+            const parentCode = getParentCode(activity.code);
+            if (parentCode && expandedItems.has(parentCode)) {
+              height += ROW_HEIGHT;
+            }
+          }
+        });
       }
     });
     return height;
-  }, [phases, expandedPhases]);
+  }, [phases, expandedPhases, expandedItems]);
 
   const statusLabels: Record<string, string> = {
     PENDIENTE: "Pendiente",
@@ -781,45 +1011,110 @@ export function GanttChart({
                   <span className="font-semibold text-sm">
                     {phase.order}. {phase.name}
                   </span>
+                  {/* Resumen de días de la fase (siempre visible) */}
+                  {(() => {
+                    const summary = getPhaseDateSummary(phase.activities);
+                    return summary ? (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        [{summary.totalDays} días]
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
 
-                {/* Actividades */}
+                {/* Actividades con jerarquía */}
                 {expandedPhases.has(phase.id) &&
-                  phase.activities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className={cn(
-                        "flex items-center border-b cursor-pointer transition-colors bg-card text-foreground",
-                        selectedActivityId === activity.id
-                          ? "bg-accent/20 hover:bg-accent/20"
-                          : "hover:bg-muted/50"
-                      )}
-                      style={{ height: ROW_HEIGHT }}
-                      onClick={() => {
-                        setSelectedActivityId(activity.id);
-                        handleEditActivity(activity);
-                      }}
-                    >
-                      <div className="px-4 flex items-center gap-2 w-full">
-                        <span className="text-xs text-muted-foreground w-12">
-                          {activity.code}
-                        </span>
-                        <span className="text-sm truncate flex-1" title={activity.name}>
-                          {activity.name}
-                        </span>
-                        <Badge
-                          variant="outline"
+                  phase.activities
+                    .filter((activity) => {
+                      const level = getActivityLevel(activity.code);
+                      // Items (nivel 1) y secciones (nivel 0) siempre visibles
+                      if (level <= 1) return true;
+                      // SubItems (nivel 2): solo si el Item padre está expandido
+                      const parentCode = getParentCode(activity.code);
+                      return parentCode ? expandedItems.has(parentCode) : true;
+                    })
+                    .map((activity) => {
+                      const level = getActivityLevel(activity.code);
+                      const isItem = level === 1;
+                      const isSubItem = level === 2;
+                      const itemHasChildren = isItem && hasSubItems(activity.code, phase.activities);
+
+                      return (
+                        <div
+                          key={activity.id}
                           className={cn(
-                            "text-xs",
-                            activity.status === "COMPLETADO" && "bg-green-100",
-                            activity.status === "EN_PROGRESO" && "bg-blue-100"
+                            "flex items-center border-b cursor-pointer transition-colors bg-card text-foreground",
+                            selectedActivityId === activity.id
+                              ? "bg-accent/20 hover:bg-accent/20"
+                              : "hover:bg-muted/50"
                           )}
+                          style={{ height: ROW_HEIGHT }}
+                          onClick={() => {
+                            if (itemHasChildren) {
+                              // Si es Item con hijos, toggle expand
+                              toggleItem(activity.code);
+                            } else {
+                              setSelectedActivityId(activity.id);
+                              handleEditActivity(activity);
+                            }
+                          }}
                         >
-                          {activity.progress}%
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                          <div className={cn(
+                            "flex items-center gap-2 w-full",
+                            // Indentación progresiva según nivel
+                            isItem ? "px-4" : "pl-10 pr-4"
+                          )}>
+                            {/* Icono expandir/colapsar para Items con SubItems */}
+                            {itemHasChildren && (
+                              <div
+                                className="flex-shrink-0 cursor-pointer hover:bg-muted rounded p-0.5"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleItem(activity.code);
+                                }}
+                              >
+                                {expandedItems.has(activity.code) ? (
+                                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                )}
+                              </div>
+                            )}
+
+                            {/* Código de actividad */}
+                            <span className={cn(
+                              "text-muted-foreground flex-shrink-0",
+                              isSubItem ? "text-[11px] w-14" : "text-xs w-12"
+                            )}>
+                              {activity.code}
+                            </span>
+
+                            {/* Nombre de actividad */}
+                            <span
+                              className={cn(
+                                "truncate flex-1",
+                                isItem ? "text-sm" : "text-xs text-muted-foreground"
+                              )}
+                              title={activity.name}
+                            >
+                              {activity.name}
+                            </span>
+
+                            {/* Badge de progreso */}
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                isSubItem ? "text-[10px] px-1.5 py-0" : "text-xs",
+                                activity.status === "COMPLETADO" && "bg-green-100 dark:bg-green-900/30",
+                                activity.status === "EN_PROGRESO" && "bg-blue-100 dark:bg-blue-900/30"
+                              )}
+                            >
+                              {activity.progress}%
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
               </div>
             ))}
           </div>
@@ -972,55 +1267,103 @@ export function GanttChart({
                   ))}
                 </div>
 
-                {/* Actividades */}
+                {/* Actividades con jerarquía */}
                 {expandedPhases.has(phase.id) &&
-                  phase.activities.map((activity) => {
-                    const barPosition = getBarPosition(activity);
-                    const isSelected = selectedActivityId === activity.id;
+                  phase.activities
+                    .filter((activity) => {
+                      const level = getActivityLevel(activity.code);
+                      if (level <= 1) return true;
+                      const parentCode = getParentCode(activity.code);
+                      return parentCode ? expandedItems.has(parentCode) : true;
+                    })
+                    .map((activity) => {
+                      const isSelected = selectedActivityId === activity.id;
+                      const level = getActivityLevel(activity.code);
+                      const isItem = level === 1;
+                      const isSubItem = level === 2;
+                      const itemHasChildren = isItem && hasSubItems(activity.code, phase.activities);
 
-                    return (
-                      <div
-                        key={activity.id}
-                        className={cn(
-                          "flex border-b relative cursor-pointer transition-colors bg-card",
-                          isSelected && "bg-accent/10"
-                        )}
-                        style={{ height: ROW_HEIGHT }}
-                        onClick={() => {
-                          setSelectedActivityId(activity.id);
-                          handleEditActivity(activity);
-                        }}
-                      >
-                        {/* Grid de celdas */}
-                        {dateColumns.map((col, i) => (
-                          <div
-                            key={i}
-                            className={cn(
-                              "flex-shrink-0 border-r",
-                              isSelected
-                                ? "bg-accent/10"
-                                : col.isWeekend
-                                ? "bg-muted/30"
-                                : col.isHoliday && "bg-red-500/10"
-                            )}
-                            style={{ width: CELL_WIDTH }}
-                          />
-                        ))}
+                      // Para Items con SubItems: calcular rango desde sus hijos
+                      // Para otros: usar las fechas propias de la actividad
+                      let barPosition: { left: number; width: number } | null = null;
+                      let isSummaryBar = false;
+                      let summaryRange: { startDate: Date; endDate: Date } | null = null;
 
-                        {/* Barra de actividad arrastrable */}
-                        {barPosition && activity.durationDays > 0 && (
-                          <DraggableActivityBar
-                            activity={activity}
-                            barPosition={barPosition}
-                            isDragDisabled={isDragDisabled}
-                            onEdit={handleEditActivity}
-                            onResize={handleResize}
-                            cellWidth={CELL_WIDTH}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
+                      if (itemHasChildren) {
+                        // Calcular rango desde SubItems
+                        const dateRange_item = getItemDateRange(activity.code, phase.activities);
+                        if (dateRange_item) {
+                          const startOffset = differenceInDays(dateRange_item.startDate, dateRange.start);
+                          barPosition = {
+                            left: startOffset * CELL_WIDTH,
+                            width: dateRange_item.totalDays * CELL_WIDTH - 4,
+                          };
+                          isSummaryBar = true;
+                          summaryRange = {
+                            startDate: dateRange_item.startDate,
+                            endDate: dateRange_item.endDate,
+                          };
+                        }
+                      } else {
+                        barPosition = getBarPosition(activity);
+                      }
+
+                      return (
+                        <div
+                          key={activity.id}
+                          className={cn(
+                            "flex border-b relative cursor-pointer transition-colors bg-card",
+                            isSelected && "bg-accent/10"
+                          )}
+                          style={{ height: ROW_HEIGHT }}
+                          onClick={() => {
+                            setSelectedActivityId(activity.id);
+                            handleEditActivity(activity);
+                          }}
+                        >
+                          {/* Grid de celdas */}
+                          {dateColumns.map((col, i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                "flex-shrink-0 border-r",
+                                isSelected
+                                  ? "bg-accent/10"
+                                  : col.isWeekend
+                                  ? "bg-muted/30"
+                                  : col.isHoliday && "bg-red-500/10"
+                              )}
+                              style={{ width: CELL_WIDTH }}
+                            />
+                          ))}
+
+                          {/* Barra de actividad */}
+                          {barPosition && (isSummaryBar || activity.durationDays > 0) && (
+                            isSummaryBar && summaryRange ? (
+                              // Barra de resumen arrastrable para Items con SubItems
+                              <DraggableSummaryBar
+                                activity={activity}
+                                barPosition={barPosition}
+                                isDragDisabled={isDragDisabled}
+                                dateRange={summaryRange}
+                              />
+                            ) : (
+                              // Barra normal arrastrable
+                              <DraggableActivityBar
+                                activity={activity}
+                                barPosition={barPosition}
+                                isDragDisabled={isDragDisabled}
+                                onEdit={handleEditActivity}
+                                onResize={handleResize}
+                                cellWidth={CELL_WIDTH}
+                                isSubItem={isSubItem}
+                                allowResize={isSubItem} // Solo SubItems pueden redimensionarse
+                              />
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
               </div>
             ))}
           </div>
@@ -1065,13 +1408,23 @@ export function GanttChart({
 
     {/* Overlay de drag con preview */}
     <DragOverlay>
-      {draggedActivity && draggedActivity.startDate && draggedActivity.endDate && (
-        <DragPreview
-          activity={draggedActivity}
-          daysOffset={currentDragOffset}
-          originalStartDate={new Date(draggedActivity.startDate)}
-          originalEndDate={new Date(draggedActivity.endDate)}
-        />
+      {draggedActivity && (
+        isDraggingSummary && summaryDateRange ? (
+          <DragPreview
+            activity={draggedActivity}
+            daysOffset={currentDragOffset}
+            originalStartDate={summaryDateRange.startDate}
+            originalEndDate={summaryDateRange.endDate}
+            isSummaryBar={true}
+          />
+        ) : draggedActivity.startDate && draggedActivity.endDate ? (
+          <DragPreview
+            activity={draggedActivity}
+            daysOffset={currentDragOffset}
+            originalStartDate={new Date(draggedActivity.startDate)}
+            originalEndDate={new Date(draggedActivity.endDate)}
+          />
+        ) : null
       )}
     </DragOverlay>
     </DndContext>

@@ -11,6 +11,41 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 
+const LIMA_TIMEZONE = "America/Lima";
+
+/**
+ * Obtiene la fecha de hoy en la zona horaria de Lima (Peru)
+ * @returns Date object representando hoy en Lima
+ */
+export function getTodayInLima(): Date {
+  // Obtener la fecha actual formateada en Lima
+  const limaDateStr = new Date().toLocaleDateString("en-CA", {
+    timeZone: LIMA_TIMEZONE,
+  }); // formato YYYY-MM-DD
+  // Crear fecha a partir del string (esto crea la fecha en hora local del browser)
+  const [year, month, day] = limaDateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Normaliza cualquier fecha a medianoche, preservando solo la parte de fecha
+ * Evita problemas de timezone al comparar fechas
+ */
+export function normalizeDateOnly(date: Date): Date {
+  const d = new Date(date);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
+ * Compara dos fechas ignorando la hora (solo parte de fecha)
+ * @returns negativo si a < b, 0 si iguales, positivo si a > b
+ */
+export function compareDatesOnly(a: Date, b: Date): number {
+  const aNorm = normalizeDateOnly(a);
+  const bNorm = normalizeDateOnly(b);
+  return aNorm.getTime() - bNorm.getTime();
+}
+
 export interface Holiday {
   date: Date;
   name: string;

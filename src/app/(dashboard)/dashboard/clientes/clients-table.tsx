@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Building2, Search, Users, Star, X } from "lucide-react";
+import { Building2, Search, Users, Star, X, FolderKanban } from "lucide-react";
 import { ClientActions } from "./client-actions";
 import { NewClientButton } from "./new-client-button";
 
@@ -44,9 +44,10 @@ interface Client {
 
 interface ClientsTableProps {
   clients: Client[];
+  canEdit?: boolean;
 }
 
-export function ClientsTable({ clients }: ClientsTableProps) {
+export function ClientsTable({ clients, canEdit = true }: ClientsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredClients = useMemo(() => {
@@ -175,26 +176,35 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">
-                      {client._count.projects} proyecto(s)
-                    </Badge>
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        client._count.projects > 0
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-500/30 dark:text-blue-200 border border-blue-200 dark:border-blue-500/50"
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      <FolderKanban className="h-3 w-3" />
+                      {client._count.projects}
+                    </span>
                   </TableCell>
                   <TableCell>
-                    <ClientActions
-                      client={{
-                        id: client.id,
-                        name: client.name,
-                        ruc: client.ruc,
-                        contacts: client.contacts.map((c) => ({
-                          id: c.id,
-                          name: c.name,
-                          position: c.position,
-                          email: c.email,
-                          phone: c.phone,
-                          isPrimary: c.isPrimary,
-                        })),
-                      }}
-                    />
+                    {canEdit && (
+                      <ClientActions
+                        client={{
+                          id: client.id,
+                          name: client.name,
+                          ruc: client.ruc,
+                          contacts: client.contacts.map((c) => ({
+                            id: c.id,
+                            name: c.name,
+                            position: c.position,
+                            email: c.email,
+                            phone: c.phone,
+                            isPrimary: c.isPrimary,
+                          })),
+                        }}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               );

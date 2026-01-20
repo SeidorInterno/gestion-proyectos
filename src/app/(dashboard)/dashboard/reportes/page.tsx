@@ -146,7 +146,7 @@ export default function ReportesPage() {
 
             {currentReport && (
               <>
-                <div className="p-3 bg-slate-50 rounded-lg">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <p className="text-sm">{currentReport.description}</p>
                 </div>
 
@@ -215,7 +215,7 @@ export default function ReportesPage() {
                   className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                     selectedReport === report.id
                       ? "border-primary bg-primary/5"
-                      : "hover:bg-slate-50"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                   onClick={() => setSelectedReport(report.id)}
                 >
@@ -236,7 +236,7 @@ export default function ReportesPage() {
                         {report.formats.map((format) => (
                           <span
                             key={format}
-                            className="text-xs px-2 py-0.5 bg-slate-100 rounded"
+                            className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded"
                           >
                             {format.toUpperCase()}
                           </span>

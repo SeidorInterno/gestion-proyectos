@@ -287,7 +287,7 @@ export function ProjectTeam({ projectId, assignments }: ProjectTeamProps) {
               return (
                 <div
                   key={assignment.id}
-                  className="flex items-center justify-between p-4 rounded-lg bg-slate-50"
+                  className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-800"
                 >
                   <div className="flex items-center gap-4">
                     <Avatar>

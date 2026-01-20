@@ -28,38 +28,38 @@ interface StatusConfig {
 const projectStatusConfig: Record<ProjectStatus, StatusConfig> = {
   PLANIFICACION: {
     label: "Planificacion",
-    color: "text-blue-700",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    color: "text-blue-700 dark:text-blue-400",
+    bgColor: "bg-blue-50 dark:bg-blue-950",
+    borderColor: "border-blue-200 dark:border-blue-800",
     icon: Clock,
   },
   EN_PROGRESO: {
     label: "En Progreso",
-    color: "text-green-700",
-    bgColor: "bg-green-50",
-    borderColor: "border-green-200",
+    color: "text-green-700 dark:text-green-400",
+    bgColor: "bg-green-50 dark:bg-green-950",
+    borderColor: "border-green-200 dark:border-green-800",
     icon: Play,
     animated: true,
   },
   PAUSADO: {
     label: "Pausado",
-    color: "text-yellow-700",
-    bgColor: "bg-yellow-50",
-    borderColor: "border-yellow-200",
+    color: "text-yellow-700 dark:text-yellow-400",
+    bgColor: "bg-yellow-50 dark:bg-yellow-950",
+    borderColor: "border-yellow-200 dark:border-yellow-800",
     icon: Pause,
   },
   COMPLETADO: {
     label: "Completado",
-    color: "text-emerald-700",
-    bgColor: "bg-emerald-50",
-    borderColor: "border-emerald-200",
+    color: "text-emerald-700 dark:text-emerald-400",
+    bgColor: "bg-emerald-50 dark:bg-emerald-950",
+    borderColor: "border-emerald-200 dark:border-emerald-800",
     icon: CheckCircle,
   },
   CANCELADO: {
     label: "Cancelado",
-    color: "text-red-700",
-    bgColor: "bg-red-50",
-    borderColor: "border-red-200",
+    color: "text-red-700 dark:text-red-400",
+    bgColor: "bg-red-50 dark:bg-red-950",
+    borderColor: "border-red-200 dark:border-red-800",
     icon: XCircle,
   },
 };
@@ -67,31 +67,31 @@ const projectStatusConfig: Record<ProjectStatus, StatusConfig> = {
 const activityStatusConfig: Record<ActivityStatus, StatusConfig> = {
   PENDIENTE: {
     label: "Pendiente",
-    color: "text-slate-700",
-    bgColor: "bg-slate-50",
-    borderColor: "border-slate-200",
+    color: "text-slate-700 dark:text-slate-400",
+    bgColor: "bg-slate-50 dark:bg-slate-800",
+    borderColor: "border-slate-200 dark:border-slate-700",
     icon: Timer,
   },
   EN_PROGRESO: {
     label: "En Progreso",
-    color: "text-blue-700",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    color: "text-blue-700 dark:text-blue-400",
+    bgColor: "bg-blue-50 dark:bg-blue-950",
+    borderColor: "border-blue-200 dark:border-blue-800",
     icon: Loader2,
     animated: true,
   },
   COMPLETADO: {
     label: "Completado",
-    color: "text-green-700",
-    bgColor: "bg-green-50",
-    borderColor: "border-green-200",
+    color: "text-green-700 dark:text-green-400",
+    bgColor: "bg-green-50 dark:bg-green-950",
+    borderColor: "border-green-200 dark:border-green-800",
     icon: CheckCircle,
   },
   BLOQUEADO: {
     label: "Bloqueado",
-    color: "text-red-700",
-    bgColor: "bg-red-50",
-    borderColor: "border-red-200",
+    color: "text-red-700 dark:text-red-400",
+    bgColor: "bg-red-50 dark:bg-red-950",
+    borderColor: "border-red-200 dark:border-red-800",
     icon: AlertCircle,
   },
 };
@@ -194,10 +194,10 @@ interface ProgressBadgeProps {
 
 export function ProgressBadge({ progress, size = "md" }: ProgressBadgeProps) {
   const getColor = () => {
-    if (progress === 100) return { bg: "bg-green-50", border: "border-green-200", text: "text-green-700" };
-    if (progress >= 70) return { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" };
-    if (progress >= 30) return { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-700" };
-    return { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-700" };
+    if (progress === 100) return { bg: "bg-green-50 dark:bg-green-950", border: "border-green-200 dark:border-green-800", text: "text-green-700 dark:text-green-400" };
+    if (progress >= 70) return { bg: "bg-blue-50 dark:bg-blue-950", border: "border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-400" };
+    if (progress >= 30) return { bg: "bg-yellow-50 dark:bg-yellow-950", border: "border-yellow-200 dark:border-yellow-800", text: "text-yellow-700 dark:text-yellow-400" };
+    return { bg: "bg-slate-50 dark:bg-slate-800", border: "border-slate-200 dark:border-slate-700", text: "text-slate-700 dark:text-slate-400" };
   };
 
   const colors = getColor();
@@ -225,23 +225,23 @@ type UserRole = "MANAGER" | "ARQUITECTO_RPA" | "CONSULTOR";
 const roleConfig: Record<UserRole, StatusConfig> = {
   MANAGER: {
     label: "Manager",
-    color: "text-purple-700",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
+    color: "text-purple-700 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-950",
+    borderColor: "border-purple-200 dark:border-purple-800",
     icon: ({ className }) => <span className={className}>M</span>,
   },
   ARQUITECTO_RPA: {
     label: "Arquitecto RPA",
-    color: "text-blue-700",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    color: "text-blue-700 dark:text-blue-400",
+    bgColor: "bg-blue-50 dark:bg-blue-950",
+    borderColor: "border-blue-200 dark:border-blue-800",
     icon: ({ className }) => <span className={className}>AR</span>,
   },
   CONSULTOR: {
     label: "Consultor",
-    color: "text-slate-700",
-    bgColor: "bg-slate-50",
-    borderColor: "border-slate-200",
+    color: "text-slate-700 dark:text-slate-400",
+    bgColor: "bg-slate-50 dark:bg-slate-800",
+    borderColor: "border-slate-200 dark:border-slate-700",
     icon: ({ className }) => <span className={className}>C</span>,
   },
 };

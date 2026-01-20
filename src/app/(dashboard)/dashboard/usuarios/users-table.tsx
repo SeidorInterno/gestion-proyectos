@@ -10,7 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,10 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserCog, CheckCircle, XCircle, Search, X } from "lucide-react";
+import { UserCog, CheckCircle, XCircle, Search, X, Briefcase, FolderKanban } from "lucide-react";
 import { UserActions } from "./user-actions";
 import { NewUserButton } from "./new-user-button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 
 interface User {
   id: string;
@@ -53,11 +52,12 @@ interface UsersTableProps {
   currentUserId?: string;
 }
 
-const roleVariants: Record<string, "default" | "secondary" | "outline"> = {
-  MANAGER: "default",
-  ARQUITECTO_RPA: "secondary",
-  ANALISTA_FUNCIONAL: "secondary",
-  CONSULTOR: "outline",
+// Colores semánticos por rol - con buen contraste en dark mode
+const roleStyles: Record<string, string> = {
+  MANAGER: "bg-purple-100 text-purple-700 dark:bg-purple-500/30 dark:text-purple-200 border border-purple-200 dark:border-purple-500/50",
+  ARQUITECTO_RPA: "bg-blue-100 text-blue-700 dark:bg-blue-500/30 dark:text-blue-200 border border-blue-200 dark:border-blue-500/50",
+  ANALISTA_FUNCIONAL: "bg-teal-100 text-teal-700 dark:bg-teal-500/30 dark:text-teal-200 border border-teal-200 dark:border-teal-500/50",
+  CONSULTOR: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-200 border border-amber-200 dark:border-amber-500/50",
 };
 
 export function UsersTable({ users, currentUserId }: UsersTableProps) {
@@ -182,8 +182,18 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs">
+                    <Avatar className={cn(
+                      "h-8 w-8 ring-2 ring-offset-2 ring-offset-background",
+                      user.active
+                        ? "ring-green-500/50"
+                        : "ring-red-500/50"
+                    )}>
+                      <AvatarFallback className={cn(
+                        "text-xs",
+                        user.active
+                          ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300"
+                          : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                      )}>
                         {initials}
                       </AvatarFallback>
                     </Avatar>
@@ -193,9 +203,12 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <Badge variant={roleVariants[user.role.code] || "outline"}>
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit",
+                      roleStyles[user.role.code] || "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300"
+                    )}>
                       {user.role.name}
-                    </Badge>
+                    </span>
                     {user.consultorLevel && (
                       <span className="text-xs text-muted-foreground">
                         {user.consultorLevel.name}
@@ -205,23 +218,27 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
                 </TableCell>
                 <TableCell>
                   {user.active ? (
-                    <div className="flex items-center gap-1 text-green-600">
+                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                       <CheckCircle className="h-4 w-4" />
                       <span className="text-sm">Activo</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 text-red-600">
+                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
                       <XCircle className="h-4 w-4" />
                       <span className="text-sm">Inactivo</span>
                     </div>
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm">
-                    <p>{user._count.projectsAsManager} como PM</p>
-                    <p className="text-muted-foreground">
-                      {user._count.assignments} asignaciones
-                    </p>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1" title="Como PM">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      {user._count.projectsAsManager}
+                    </span>
+                    <span className="flex items-center gap-1" title="Asignaciones">
+                      <FolderKanban className="h-3.5 w-3.5" />
+                      {user._count.assignments}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">

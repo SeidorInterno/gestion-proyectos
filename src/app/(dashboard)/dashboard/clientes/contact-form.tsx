@@ -44,7 +44,7 @@ export function ContactForm({
       transition={{ duration: 0.2 }}
       className={cn(
         "relative rounded-lg border p-4 space-y-4",
-        isPrimary ? "border-blue-200 bg-blue-50/50" : "border-slate-200 bg-slate-50/50"
+        isPrimary ? "border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/50" : "border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50"
       )}
     >
       {/* Header */}
@@ -53,7 +53,7 @@ export function ContactForm({
           <div
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-full",
-              isPrimary ? "bg-blue-100 text-blue-600" : "bg-slate-200 text-slate-600"
+              isPrimary ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400" : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
             )}
           >
             <User className="h-4 w-4" />
@@ -75,7 +75,7 @@ export function ContactForm({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50"
+            className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
             onClick={onDelete}
           >
             <Trash2 className="h-4 w-4" />

@@ -17,21 +17,21 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
       <div className="text-center max-w-md mx-auto p-6">
         <div className="mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-            <AlertCircle className="h-8 w-8 text-red-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900 mb-4">
+            <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Algo salio mal
           </h1>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Ha ocurrido un error inesperado. Por favor, intenta de nuevo o
             contacta al administrador si el problema persiste.
           </p>
           {error.digest && (
-            <p className="text-sm text-gray-500 font-mono">
+            <p className="text-sm text-gray-500 dark:text-gray-500 font-mono">
               Codigo de error: {error.digest}
             </p>
           )}

@@ -26,51 +26,51 @@ export const categoryConfig: Record<
   BLOCKER: {
     label: "Blocker",
     icon: AlertTriangle,
-    color: "text-red-700",
-    bgColor: "bg-red-100",
-    borderColor: "border-red-200",
+    color: "text-red-700 dark:text-red-400",
+    bgColor: "bg-red-100 dark:bg-red-950",
+    borderColor: "border-red-200 dark:border-red-800",
   },
   RISK: {
     label: "Riesgo",
     icon: AlertCircle,
-    color: "text-orange-700",
-    bgColor: "bg-orange-100",
-    borderColor: "border-orange-200",
+    color: "text-orange-700 dark:text-orange-400",
+    bgColor: "bg-orange-100 dark:bg-orange-950",
+    borderColor: "border-orange-200 dark:border-orange-800",
   },
   PAUSE: {
     label: "Pausa",
     icon: Pause,
-    color: "text-yellow-700",
-    bgColor: "bg-yellow-100",
-    borderColor: "border-yellow-200",
+    color: "text-yellow-700 dark:text-yellow-400",
+    bgColor: "bg-yellow-100 dark:bg-yellow-950",
+    borderColor: "border-yellow-200 dark:border-yellow-800",
   },
   CHANGE: {
     label: "Cambio",
     icon: FileEdit,
-    color: "text-blue-700",
-    bgColor: "bg-blue-100",
-    borderColor: "border-blue-200",
+    color: "text-blue-700 dark:text-blue-400",
+    bgColor: "bg-blue-100 dark:bg-blue-950",
+    borderColor: "border-blue-200 dark:border-blue-800",
   },
   ISSUE: {
     label: "Issue",
     icon: Bug,
-    color: "text-purple-700",
-    bgColor: "bg-purple-100",
-    borderColor: "border-purple-200",
+    color: "text-purple-700 dark:text-purple-400",
+    bgColor: "bg-purple-100 dark:bg-purple-950",
+    borderColor: "border-purple-200 dark:border-purple-800",
   },
   ABSENCE: {
     label: "Ausencia",
     icon: UserX,
-    color: "text-gray-700",
-    bgColor: "bg-gray-100",
-    borderColor: "border-gray-200",
+    color: "text-gray-700 dark:text-gray-400",
+    bgColor: "bg-gray-100 dark:bg-gray-800",
+    borderColor: "border-gray-200 dark:border-gray-700",
   },
   MILESTONE: {
     label: "Hito",
     icon: Flag,
-    color: "text-green-700",
-    bgColor: "bg-green-100",
-    borderColor: "border-green-200",
+    color: "text-green-700 dark:text-green-400",
+    bgColor: "bg-green-100 dark:bg-green-950",
+    borderColor: "border-green-200 dark:border-green-800",
   },
 };
 
@@ -79,10 +79,10 @@ export const priorityConfig: Record<
   string,
   { label: string; color: string; bgColor: string }
 > = {
-  CRITICO: { label: "Critico", color: "text-red-700", bgColor: "bg-red-100" },
-  ALTO: { label: "Alto", color: "text-orange-700", bgColor: "bg-orange-100" },
-  MEDIO: { label: "Medio", color: "text-yellow-700", bgColor: "bg-yellow-100" },
-  BAJO: { label: "Bajo", color: "text-gray-700", bgColor: "bg-gray-100" },
+  CRITICO: { label: "Critico", color: "text-red-700 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-950" },
+  ALTO: { label: "Alto", color: "text-orange-700 dark:text-orange-400", bgColor: "bg-orange-100 dark:bg-orange-950" },
+  MEDIO: { label: "Medio", color: "text-yellow-700 dark:text-yellow-400", bgColor: "bg-yellow-100 dark:bg-yellow-950" },
+  BAJO: { label: "Bajo", color: "text-gray-700 dark:text-gray-400", bgColor: "bg-gray-100 dark:bg-gray-800" },
 };
 
 // Labels por estado
@@ -90,18 +90,18 @@ export const statusConfig: Record<
   string,
   { label: string; color: string; bgColor: string }
 > = {
-  ABIERTO: { label: "Abierto", color: "text-red-700", bgColor: "bg-red-100" },
+  ABIERTO: { label: "Abierto", color: "text-red-700 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-950" },
   EN_PROGRESO: {
     label: "En Progreso",
-    color: "text-blue-700",
-    bgColor: "bg-blue-100",
+    color: "text-blue-700 dark:text-blue-400",
+    bgColor: "bg-blue-100 dark:bg-blue-950",
   },
   RESUELTO: {
     label: "Resuelto",
-    color: "text-green-700",
-    bgColor: "bg-green-100",
+    color: "text-green-700 dark:text-green-400",
+    bgColor: "bg-green-100 dark:bg-green-950",
   },
-  CERRADO: { label: "Cerrado", color: "text-gray-700", bgColor: "bg-gray-100" },
+  CERRADO: { label: "Cerrado", color: "text-gray-700 dark:text-gray-400", bgColor: "bg-gray-100 dark:bg-gray-800" },
 };
 
 // Tipos de evento por categoría

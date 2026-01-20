@@ -134,9 +134,15 @@ async function main() {
   console.log("");
   console.log("Seeding completed!");
   console.log("");
-  console.log("Credenciales de prueba:");
+  console.log("===========================================");
+  console.log("⚠️  CREDENCIALES POR DEFECTO - SOLO DESARROLLO");
+  console.log("===========================================");
   console.log("  Email: admin@seidor.com");
   console.log("  Password: admin123");
+  console.log("");
+  console.log("🔴 IMPORTANTE: Cambie esta contraseña inmediatamente");
+  console.log("   en un entorno de producción.");
+  console.log("===========================================");
 }
 
 main()

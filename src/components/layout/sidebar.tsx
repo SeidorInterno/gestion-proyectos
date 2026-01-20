@@ -23,41 +23,51 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
+// Roles que pueden ver cada item del menu
+type RoleCode = "MANAGER" | "ARQUITECTO_RPA" | "ANALISTA_FUNCIONAL" | "CONSULTOR";
+
 const menuItems = [
   {
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"] as RoleCode[],
   },
   {
     title: "Clientes",
     href: "/dashboard/clientes",
     icon: Building2,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"] as RoleCode[], // CONSULTOR no ve clientes
   },
   {
     title: "Proyectos",
     href: "/dashboard/proyectos",
     icon: FolderKanban,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"] as RoleCode[],
   },
   {
     title: "Eventos",
     href: "/dashboard/eventos",
     icon: AlertCircle,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"] as RoleCode[],
   },
   {
     title: "Recursos",
     href: "/dashboard/recursos",
     icon: Users,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"] as RoleCode[],
   },
   {
     title: "Calendario",
     href: "/dashboard/calendario",
     icon: Calendar,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"] as RoleCode[],
   },
   {
     title: "Reportes",
     href: "/dashboard/reportes",
     icon: FileBarChart,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"] as RoleCode[], // CONSULTOR no ve reportes
   },
 ];
 
@@ -195,7 +205,9 @@ export function Sidebar({ userRoleCode = "CONSULTOR" }: SidebarProps) {
                 </motion.p>
               )}
             </AnimatePresence>
-            {menuItems.map((item, index) => {
+            {menuItems
+              .filter((item) => item.allowedRoles.includes(userRoleCode as RoleCode))
+              .map((item, index) => {
               // Dashboard solo debe estar activo si es exactamente /dashboard
               const isActive = item.href === "/dashboard"
                 ? pathname === "/dashboard"

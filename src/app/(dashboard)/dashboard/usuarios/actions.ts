@@ -10,7 +10,7 @@ import { logCreate, logUpdate, logSoftDelete } from "@/lib/audit";
 const userSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   email: z.string().email("Email inválido"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   roleId: z.string().min(1, "El rol es requerido"),
   consultorLevelId: z.string().optional().nullable(),
 });
@@ -46,8 +46,8 @@ export async function createUser(data: UserInput) {
     throw new Error("Se requiere un nivel para este rol");
   }
 
-  // Hash de la contraseña
-  const hashedPassword = await bcrypt.hash(validated.password || "seidor123", 10);
+  // Hash de la contraseña (bcrypt con factor 12 para mayor seguridad)
+  const hashedPassword = await bcrypt.hash(validated.password, 12);
 
   const user = await prisma.user.create({
     data: {
@@ -123,9 +123,9 @@ export async function updateUser(
     consultorLevelId: role?.hasLevels ? validated.consultorLevelId : null,
   };
 
-  // Solo actualizar contraseña si se proporciona una nueva
-  if (validated.password && validated.password.length >= 6) {
-    updateData.password = await bcrypt.hash(validated.password, 10);
+  // Solo actualizar contraseña si se proporciona una nueva (mínimo 8 caracteres)
+  if (validated.password && validated.password.length >= 8) {
+    updateData.password = await bcrypt.hash(validated.password, 12);
   }
 
   const user = await prisma.user.update({
@@ -224,6 +224,9 @@ export async function deleteUser(id: string) {
 }
 
 export async function getUsers() {
+  // Solo MANAGER puede ver lista de usuarios
+  await requireRole(["MANAGER"]);
+
   return prisma.user.findMany({
     orderBy: { name: "asc" },
     include: {
@@ -240,6 +243,9 @@ export async function getUsers() {
 }
 
 export async function getUserById(id: string) {
+  // Solo MANAGER puede ver detalles de usuario
+  await requireRole(["MANAGER"]);
+
   return prisma.user.findUnique({
     where: { id },
     include: {
@@ -250,6 +256,9 @@ export async function getUserById(id: string) {
 }
 
 export async function getRoles() {
+  // Solo MANAGER puede ver roles
+  await requireRole(["MANAGER"]);
+
   return prisma.role.findMany({
     where: { active: true },
     orderBy: { order: "asc" },
@@ -257,6 +266,9 @@ export async function getRoles() {
 }
 
 export async function getConsultorLevels() {
+  // Solo MANAGER puede ver niveles
+  await requireRole(["MANAGER"]);
+
   return prisma.consultorLevel.findMany({
     where: { active: true },
     orderBy: { order: "asc" },

@@ -29,10 +29,10 @@ async function getDashboardStats() {
     recursosAsignados,
   ] = await Promise.all([
     prisma.project.count({
-      where: { status: { in: ["EN_PROGRESO", "PLANIFICACION"] } },
+      where: { status: { in: ["EN_PROGRESO", "PLANIFICACION"] }, deletedAt: null },
     }),
     prisma.project.count({
-      where: { status: "COMPLETADO" },
+      where: { status: "COMPLETADO", deletedAt: null },
     }),
     prisma.client.count({
       where: { active: true, projects: { some: {} } },
@@ -320,7 +320,7 @@ export default async function DashboardPage() {
                     <Link
                       key={proyecto.id}
                       href={`/dashboard/proyectos/${proyecto.id}`}
-                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors block"
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors block"
                     >
                       <div className="space-y-1">
                         <p className="font-medium">{proyecto.name}</p>

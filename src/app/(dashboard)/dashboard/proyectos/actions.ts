@@ -13,6 +13,28 @@ import { calculateEndDate, calculateStartDate, getPeruHolidays } from "@/lib/dat
 import { z } from "zod";
 import { logCreate, logUpdate, logSoftDelete, logStatusChange, logRestore } from "@/lib/audit";
 
+/**
+ * Genera un código único de proyecto con formato PRJ-XXX
+ * Ejemplo: PRJ-001, PRJ-002, PRJ-003...
+ */
+async function generateProjectCode(): Promise<string> {
+  const lastProject = await prisma.project.findFirst({
+    where: { code: { not: null } },
+    orderBy: { code: "desc" },
+    select: { code: true },
+  });
+
+  let nextNumber = 1;
+  if (lastProject?.code) {
+    const match = lastProject.code.match(/PRJ-(\d+)$/);
+    if (match) {
+      nextNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  return `PRJ-${nextNumber.toString().padStart(3, "0")}`;
+}
+
 const phaseDurationsSchema = z.object({
   prepare: z.number().min(1),
   connect: z.number().min(1),
@@ -44,10 +66,14 @@ export async function createProject(data: {
 
   const validated = projectSchema.parse(data);
 
+  // Generar código único para el proyecto
+  const code = await generateProjectCode();
+
   // Crear el proyecto
   const project = await prisma.project.create({
     data: {
       name: validated.name,
+      code,
       description: validated.description || null,
       clientId: validated.clientId,
       managerId: validated.managerId || null,
@@ -254,6 +280,23 @@ export async function updateActivityProgress(
   // MANAGER, ARQUITECTO_RPA y ANALISTA_FUNCIONAL pueden actualizar progreso
   await requireRole(["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"]);
 
+  // Obtener la actividad con su fase para verificar jerarquía
+  const currentActivity = await prisma.activity.findUnique({
+    where: { id: activityId },
+    include: {
+      phase: {
+        include: {
+          activities: true,
+        },
+      },
+    },
+  });
+
+  if (!currentActivity) {
+    throw new Error("Actividad no encontrada");
+  }
+
+  // Actualizar la actividad principal
   const activity = await prisma.activity.update({
     where: { id: activityId },
     data: {
@@ -261,6 +304,70 @@ export async function updateActivityProgress(
       status: status as any,
     },
   });
+
+  // Verificar jerarquía para propagación automática
+  const codeParts = currentActivity.code.split(".");
+  const isItem = codeParts.length === 2;
+  const isSubItem = codeParts.length >= 3;
+
+  // CASO 1: Item al 100% → Actualizar todos sus SubItems al 100%
+  if (isItem && progress === 100) {
+    const itemCode = currentActivity.code;
+    const subItems = currentActivity.phase.activities.filter((a) => {
+      const subParts = a.code.split(".");
+      if (subParts.length < 3) return false;
+      const parentCode = subParts.slice(0, 2).join(".");
+      return parentCode === itemCode;
+    });
+
+    if (subItems.length > 0) {
+      await prisma.activity.updateMany({
+        where: {
+          id: { in: subItems.map((s) => s.id) },
+        },
+        data: {
+          progress: 100,
+          status: "COMPLETADO",
+        },
+      });
+    }
+  }
+
+  // CASO 2: SubItem al 100% → Verificar si todos los hermanos están al 100%
+  // Si es así, actualizar el Item padre al 100%
+  if (isSubItem && progress === 100) {
+    const parentCode = codeParts.slice(0, 2).join(".");
+
+    // Buscar el Item padre
+    const parentItem = currentActivity.phase.activities.find(
+      (a) => a.code === parentCode
+    );
+
+    if (parentItem) {
+      // Buscar todos los SubItems hermanos (incluyendo el actual)
+      const allSiblings = currentActivity.phase.activities.filter((a) => {
+        const subParts = a.code.split(".");
+        if (subParts.length < 3) return false;
+        return subParts.slice(0, 2).join(".") === parentCode;
+      });
+
+      // Verificar si todos los hermanos están al 100% (considerando el update actual)
+      const allCompleted = allSiblings.every((sibling) => {
+        if (sibling.id === activityId) return progress === 100;
+        return sibling.progress === 100;
+      });
+
+      if (allCompleted) {
+        await prisma.activity.update({
+          where: { id: parentItem.id },
+          data: {
+            progress: 100,
+            status: "COMPLETADO",
+          },
+        });
+      }
+    }
+  }
 
   revalidatePath("/dashboard/proyectos");
   return activity;
@@ -274,6 +381,61 @@ export async function updateActivityDates(
   // Solo MANAGER y ARQUITECTO_RPA pueden modificar fechas de actividades
   await requireRole(["MANAGER", "ARQUITECTO_RPA"]);
 
+  // Obtener la actividad actual con su fase
+  const currentActivity = await prisma.activity.findUnique({
+    where: { id: activityId },
+    include: {
+      phase: {
+        include: {
+          activities: true,
+        },
+      },
+    },
+  });
+
+  if (!currentActivity) {
+    throw new Error("Actividad no encontrada");
+  }
+
+  // Verificar si es un SubItem (código tipo X.X.X)
+  const codeParts = currentActivity.code.split(".");
+  const isSubItem = codeParts.length >= 3;
+
+  if (isSubItem) {
+    // Obtener código del Item padre (X.X)
+    const parentCode = codeParts.slice(0, 2).join(".");
+
+    // Buscar el Item padre en la misma fase
+    const parentActivity = currentActivity.phase.activities.find(
+      (a) => a.code === parentCode
+    );
+
+    if (parentActivity) {
+      // Usar fechas baseline del padre como límites, o fechas actuales si no hay baseline
+      const parentStart = parentActivity.baselineStartDate || parentActivity.startDate;
+      const parentEnd = parentActivity.baselineEndDate || parentActivity.endDate;
+
+      if (parentStart && parentEnd) {
+        const parentStartTime = new Date(parentStart).getTime();
+        const parentEndTime = new Date(parentEnd).getTime();
+        const newStartTime = new Date(startDate).getTime();
+        const newEndTime = new Date(endDate).getTime();
+
+        // Validar que no exceda los límites del padre
+        if (newStartTime < parentStartTime) {
+          throw new Error(
+            `El SubItem no puede iniciar antes que su Item padre (${new Date(parentStart).toLocaleDateString("es-PE")})`
+          );
+        }
+        if (newEndTime > parentEndTime) {
+          throw new Error(
+            `El SubItem no puede terminar después que su Item padre (${new Date(parentEnd).toLocaleDateString("es-PE")})`
+          );
+        }
+      }
+    }
+  }
+
   const activity = await prisma.activity.update({
     where: { id: activityId },
     data: {
@@ -286,11 +448,86 @@ export async function updateActivityDates(
   return activity;
 }
 
+// Mover un Item padre junto con todos sus SubItems
+export async function moveItemWithSubItems(
+  itemId: string,
+  daysOffset: number
+) {
+  // Solo MANAGER y ARQUITECTO_RPA pueden mover Items
+  await requireRole(["MANAGER", "ARQUITECTO_RPA"]);
+
+  // Obtener el Item con su fase y actividades
+  const item = await prisma.activity.findUnique({
+    where: { id: itemId },
+    include: {
+      phase: {
+        include: {
+          activities: true,
+        },
+      },
+    },
+  });
+
+  if (!item) {
+    throw new Error("Item no encontrado");
+  }
+
+  // Verificar que es un Item (código tipo X.X)
+  const codeParts = item.code.split(".");
+  if (codeParts.length !== 2) {
+    throw new Error("Solo se pueden mover Items padres");
+  }
+
+  // Buscar todos los SubItems de este Item
+  const itemCode = item.code;
+  const subItems = item.phase.activities.filter((a) => {
+    const subParts = a.code.split(".");
+    if (subParts.length < 3) return false;
+    const parentCode = subParts.slice(0, 2).join(".");
+    return parentCode === itemCode;
+  });
+
+  // Función para agregar días a una fecha
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+
+  // Actualizar todas las actividades (Item + SubItems)
+  const allActivities = [item, ...subItems];
+
+  for (const activity of allActivities) {
+    if (activity.startDate && activity.endDate) {
+      await prisma.activity.update({
+        where: { id: activity.id },
+        data: {
+          startDate: addDays(new Date(activity.startDate), daysOffset),
+          endDate: addDays(new Date(activity.endDate), daysOffset),
+        },
+      });
+    }
+  }
+
+  // También actualizar las fechas baseline del Item padre
+  if (item.baselineStartDate && item.baselineEndDate) {
+    await prisma.activity.update({
+      where: { id: item.id },
+      data: {
+        baselineStartDate: addDays(new Date(item.baselineStartDate), daysOffset),
+        baselineEndDate: addDays(new Date(item.baselineEndDate), daysOffset),
+      },
+    });
+  }
+
+  revalidatePath("/dashboard/proyectos");
+  return { success: true, movedCount: allActivities.length };
+}
+
 export async function deleteProject(id: string) {
   // Solo MANAGER puede eliminar proyectos
-  const session = await requireRole(["MANAGER"]);
+  await requireRole(["MANAGER"]);
 
-  // Get project for audit log before soft delete
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
@@ -308,17 +545,9 @@ export async function deleteProject(id: string) {
     throw new Error("Proyecto no encontrado");
   }
 
-  if (project.deletedAt) {
-    throw new Error("El proyecto ya fue eliminado");
-  }
-
-  // Soft delete instead of hard delete
-  await prisma.project.update({
+  // Hard delete - cascade eliminará fases, actividades, asignaciones y eventos
+  await prisma.project.delete({
     where: { id },
-    data: {
-      deletedAt: new Date(),
-      deletedBy: session.user.id,
-    },
   });
 
   revalidatePath("/dashboard/proyectos");

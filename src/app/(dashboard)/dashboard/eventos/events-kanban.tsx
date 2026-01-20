@@ -89,13 +89,13 @@ const columns = [
 ];
 
 const categoryConfig: Record<string, { icon: typeof AlertTriangle; color: string; label: string }> = {
-  BLOCKER: { icon: AlertOctagon, color: "text-red-500 bg-red-50 border-red-200", label: "Blocker" },
-  ISSUE: { icon: AlertTriangle, color: "text-orange-500 bg-orange-50 border-orange-200", label: "Issue" },
-  RISK: { icon: Shield, color: "text-yellow-500 bg-yellow-50 border-yellow-200", label: "Riesgo" },
-  CHANGE: { icon: RefreshCw, color: "text-blue-500 bg-blue-50 border-blue-200", label: "Cambio" },
-  PAUSE: { icon: Pause, color: "text-gray-500 bg-gray-50 border-gray-200", label: "Pausa" },
-  ABSENCE: { icon: FileQuestion, color: "text-cyan-500 bg-cyan-50 border-cyan-200", label: "Ausencia" },
-  MILESTONE: { icon: Lightbulb, color: "text-purple-500 bg-purple-50 border-purple-200", label: "Hito" },
+  BLOCKER: { icon: AlertOctagon, color: "text-red-500 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800", label: "Blocker" },
+  ISSUE: { icon: AlertTriangle, color: "text-orange-500 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800", label: "Issue" },
+  RISK: { icon: Shield, color: "text-yellow-500 bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800", label: "Riesgo" },
+  CHANGE: { icon: RefreshCw, color: "text-blue-500 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800", label: "Cambio" },
+  PAUSE: { icon: Pause, color: "text-gray-500 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700", label: "Pausa" },
+  ABSENCE: { icon: FileQuestion, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950 border-cyan-200 dark:border-cyan-800", label: "Ausencia" },
+  MILESTONE: { icon: Lightbulb, color: "text-purple-500 bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800", label: "Hito" },
 };
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
@@ -211,7 +211,7 @@ function KanbanColumn({
           {events.length}
         </Badge>
       </div>
-      <div className="bg-slate-100 rounded-lg p-2 min-h-[400px]">
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-[400px]">
         <SortableContext
           items={events.map((e) => e.id)}
           strategy={verticalListSortingStrategy}

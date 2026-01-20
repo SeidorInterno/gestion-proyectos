@@ -23,7 +23,11 @@ import { formatDate } from "@/lib/utils";
 import {
   calculateActualProgress,
   calculateEstimatedProgress,
+  calculateDelayedActivities,
+  calculateProgressVariance,
   getProjectEndDate,
+  calculateScheduleVariance,
+  getScheduleStatusColor,
 } from "@/lib/progress-utils";
 
 async function getProject(id: string) {
@@ -139,9 +143,13 @@ export default async function ProjectDetailPage({
     project.phases,
     project.startDate || new Date()
   );
-  const estimatedProgress = calculateEstimatedProgress(
-    project.startDate,
-    projectEndDate
+  const estimatedProgress = calculateEstimatedProgress(project.phases);
+  const delayedActivities = calculateDelayedActivities(project.phases);
+
+  // Calcular varianza del cronograma
+  const scheduleVariance = calculateScheduleVariance(
+    projectEndDate,
+    project.baselineEndDate
   );
 
   // Contar blockers activos
@@ -204,10 +212,11 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <ProgressComparisonCard
           actualProgress={actualProgress}
           estimatedProgress={estimatedProgress}
+          delayedActivities={delayedActivities}
         />
 
         <Card>
@@ -219,6 +228,23 @@ export default async function ProjectDetailPage({
               {project.startDate ? formatDate(project.startDate) : "-"}
             </div>
             <p className="text-xs text-muted-foreground">Fecha planificada</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Fecha Fin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatDate(projectEndDate)}
+            </div>
+            <p className={`text-xs ${getScheduleStatusColor(scheduleVariance.status)}`}>
+              {scheduleVariance.status === "on-time" && "✓ "}
+              {scheduleVariance.status === "delayed" && "⚠ "}
+              {scheduleVariance.status === "ahead" && "↑ "}
+              {scheduleVariance.label}
+            </p>
           </CardContent>
         </Card>
 

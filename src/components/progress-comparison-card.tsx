@@ -19,15 +19,30 @@ import {
 interface ProgressComparisonCardProps {
   actualProgress: number;
   estimatedProgress: number;
+  delayedActivities?: number;
   className?: string;
+}
+
+// Formatea un número a máximo 2 decimales, sin decimales si es entero
+function formatProgress(value: number): string {
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+  // Redondear a 2 decimales y quitar ceros innecesarios
+  return parseFloat(value.toFixed(2)).toString();
 }
 
 export function ProgressComparisonCard({
   actualProgress,
   estimatedProgress,
+  delayedActivities = 0,
   className,
 }: ProgressComparisonCardProps) {
-  const variance = calculateProgressVariance(estimatedProgress, actualProgress);
+  const variance = calculateProgressVariance(
+    estimatedProgress,
+    actualProgress,
+    delayedActivities
+  );
   const colors = getProgressStatusColor(variance.status);
 
   const StatusIcon = {
@@ -52,7 +67,7 @@ export function ProgressComparisonCard({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Real</span>
-                  <span className="text-sm font-bold">{actualProgress}%</span>
+                  <span className="text-sm font-bold">{formatProgress(actualProgress)}%</span>
                 </div>
                 <Progress value={actualProgress} className="h-2" />
               </div>
@@ -71,7 +86,7 @@ export function ProgressComparisonCard({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Estimado</span>
                   <span className="text-sm font-medium text-muted-foreground">
-                    {estimatedProgress}%
+                    {formatProgress(estimatedProgress)}%
                   </span>
                 </div>
                 <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">

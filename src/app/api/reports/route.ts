@@ -5,12 +5,23 @@ import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
+// Roles que pueden generar reportes
+const ALLOWED_ROLES = ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"];
+
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    // Verificar autorización - CONSULTOR no puede generar reportes
+    if (!ALLOWED_ROLES.includes(session.user.roleCode)) {
+      return NextResponse.json(
+        { error: "Sin permisos para generar reportes" },
+        { status: 403 }
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;

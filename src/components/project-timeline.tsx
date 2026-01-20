@@ -174,7 +174,7 @@ export function ProjectTimeline({ projects }: ProjectTimelineProps) {
                     </div>
 
                     {/* Timeline bar */}
-                    <div className="flex-1 relative h-10 bg-slate-100 rounded">
+                    <div className="flex-1 relative h-10 bg-slate-100 dark:bg-slate-800 rounded">
                       {project.position.visible && (
                         <Tooltip>
                           <TooltipTrigger asChild>

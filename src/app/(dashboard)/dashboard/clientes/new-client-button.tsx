@@ -124,7 +124,7 @@ export function NewClientButton({ variant = "default" }: NewClientButtonProps) {
             <div className="space-y-6 py-4 px-1">
               {/* Informacion del Cliente */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                   <Building2 className="h-4 w-4" />
                   Informacion del Cliente
                 </div>
@@ -159,7 +159,7 @@ export function NewClientButton({ variant = "default" }: NewClientButtonProps) {
 
               {/* Personas de Contacto */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                   <Users className="h-4 w-4" />
                   Personas de Contacto
                 </div>

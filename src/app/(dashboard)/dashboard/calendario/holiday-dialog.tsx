@@ -97,7 +97,7 @@ export function HolidayDialog({ children }: HolidayDialogProps) {
 
         <div className="space-y-6">
           {/* Importar feriados de Peru */}
-          <div className="p-4 bg-slate-50 rounded-lg">
+          <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
             <p className="text-sm font-medium mb-2">Importar feriados de Peru</p>
             <p className="text-xs text-muted-foreground mb-3">
               Importa automaticamente los feriados oficiales del año actual y

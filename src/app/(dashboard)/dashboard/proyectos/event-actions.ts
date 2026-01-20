@@ -315,3 +315,94 @@ export async function recalculateProjectDates(projectId: string, daysToAdd: numb
     return { success: false, error: "Error al recalcular fechas" };
   }
 }
+
+// Aprobar una solicitud de Control de Cambios
+export async function approveChangeRequest(
+  eventId: string,
+  approvedCost: number
+) {
+  // Solo MANAGER puede aprobar cambios
+  const session = await requireRole(["MANAGER"]);
+
+  try {
+    const event = await prisma.projectEvent.findUnique({
+      where: { id: eventId },
+      include: { activity: true },
+    });
+
+    if (!event) {
+      return { success: false, error: "Evento no encontrado" };
+    }
+
+    if (event.category !== "CHANGE") {
+      return { success: false, error: "Este evento no es un Control de Cambios" };
+    }
+
+    // Actualizar el evento con la aprobación
+    await prisma.projectEvent.update({
+      where: { id: eventId },
+      data: {
+        changeRequestStatus: "APPROVED",
+        approvedBy: session.user.id,
+        approvedAt: new Date(),
+        approvedCost: approvedCost,
+      },
+    });
+
+    // Si hay una actividad asociada, desbloquearla para permitir cambios
+    if (event.activityId) {
+      await prisma.activity.update({
+        where: { id: event.activityId },
+        data: { isLocked: false },
+      });
+    }
+
+    revalidatePath(`/dashboard/proyectos/${event.projectId}`);
+    return {
+      success: true,
+      message: "Control de cambios aprobado. La actividad ha sido desbloqueada.",
+    };
+  } catch (error) {
+    console.error("Error approving change request:", error);
+    return { success: false, error: "Error al aprobar el control de cambios" };
+  }
+}
+
+// Rechazar una solicitud de Control de Cambios
+export async function rejectChangeRequest(eventId: string, reason?: string) {
+  // Solo MANAGER puede rechazar cambios
+  await requireRole(["MANAGER"]);
+
+  try {
+    const event = await prisma.projectEvent.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      return { success: false, error: "Evento no encontrado" };
+    }
+
+    if (event.category !== "CHANGE") {
+      return { success: false, error: "Este evento no es un Control de Cambios" };
+    }
+
+    await prisma.projectEvent.update({
+      where: { id: eventId },
+      data: {
+        changeRequestStatus: "REJECTED",
+        description: reason
+          ? `${event.description || ""}\n\n[RECHAZADO]: ${reason}`
+          : event.description,
+      },
+    });
+
+    revalidatePath(`/dashboard/proyectos/${event.projectId}`);
+    return {
+      success: true,
+      message: "Control de cambios rechazado.",
+    };
+  } catch (error) {
+    console.error("Error rejecting change request:", error);
+    return { success: false, error: "Error al rechazar el control de cambios" };
+  }
+}
