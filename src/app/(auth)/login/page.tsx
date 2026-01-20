@@ -103,8 +103,8 @@ export default function LoginPage() {
         toast.success("¡Bienvenido!", {
           description: "Iniciando sesión...",
         });
-        router.push("/dashboard");
-        router.refresh();
+        // Use window.location for full page reload to ensure session is picked up
+        window.location.href = "/dashboard";
       }
     } catch {
       setErrors({ general: "Ocurrió un error al conectar con el servidor" });
