@@ -236,20 +236,21 @@ export function getDayName(date: Date): string {
 
 /**
  * Obtiene feriados de Perú por defecto para un año
+ * Nota: Se usa las 12:00 (mediodía) para evitar problemas de timezone
  */
 export function getPeruHolidays(year: number): Holiday[] {
   return [
-    { date: new Date(year, 0, 1), name: "Año Nuevo" },
-    { date: new Date(year, 4, 1), name: "Día del Trabajo" },
-    { date: new Date(year, 5, 29), name: "San Pedro y San Pablo" },
-    { date: new Date(year, 6, 28), name: "Fiestas Patrias" },
-    { date: new Date(year, 6, 29), name: "Fiestas Patrias" },
-    { date: new Date(year, 7, 30), name: "Santa Rosa de Lima" },
-    { date: new Date(year, 9, 8), name: "Combate de Angamos" },
-    { date: new Date(year, 10, 1), name: "Día de Todos los Santos" },
-    { date: new Date(year, 11, 8), name: "Inmaculada Concepción" },
-    { date: new Date(year, 11, 9), name: "Batalla de Ayacucho" },
-    { date: new Date(year, 11, 25), name: "Navidad" },
+    { date: new Date(year, 0, 1, 12, 0, 0), name: "Año Nuevo" },
+    { date: new Date(year, 4, 1, 12, 0, 0), name: "Día del Trabajo" },
+    { date: new Date(year, 5, 29, 12, 0, 0), name: "San Pedro y San Pablo" },
+    { date: new Date(year, 6, 28, 12, 0, 0), name: "Fiestas Patrias" },
+    { date: new Date(year, 6, 29, 12, 0, 0), name: "Fiestas Patrias" },
+    { date: new Date(year, 7, 30, 12, 0, 0), name: "Santa Rosa de Lima" },
+    { date: new Date(year, 9, 8, 12, 0, 0), name: "Combate de Angamos" },
+    { date: new Date(year, 10, 1, 12, 0, 0), name: "Día de Todos los Santos" },
+    { date: new Date(year, 11, 8, 12, 0, 0), name: "Inmaculada Concepción" },
+    { date: new Date(year, 11, 9, 12, 0, 0), name: "Batalla de Ayacucho" },
+    { date: new Date(year, 11, 25, 12, 0, 0), name: "Navidad" },
   ];
 }
 

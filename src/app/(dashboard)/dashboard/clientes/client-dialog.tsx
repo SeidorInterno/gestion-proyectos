@@ -31,6 +31,7 @@ interface Client {
   id: string;
   name: string;
   ruc: string | null;
+  country?: string | null;
   address: string | null;
   contacts?: Contact[];
 }
@@ -51,6 +52,7 @@ export function ClientDialog({ children, client }: ClientDialogProps) {
   const [formData, setFormData] = useState({
     name: client?.name || "",
     ruc: client?.ruc || "",
+    country: client?.country || "",
     contactName: primaryContact?.name || "",
     contactPosition: primaryContact?.position || "",
     contactEmail: primaryContact?.email || "",
@@ -68,6 +70,7 @@ export function ClientDialog({ children, client }: ClientDialogProps) {
     const clientData = {
       name: formData.name,
       ruc: formData.ruc || undefined,
+      country: formData.country || undefined,
       address: formData.address || undefined,
       contacts: [
         {
@@ -138,27 +141,44 @@ export function ClientDialog({ children, client }: ClientDialogProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="ruc">RUC</Label>
+                <Label htmlFor="country">País</Label>
                 <Input
-                  id="ruc"
-                  value={formData.ruc}
+                  id="country"
+                  value={formData.country}
                   onChange={(e) =>
-                    setFormData({ ...formData, ruc: e.target.value })
+                    setFormData({ ...formData, country: e.target.value })
                   }
-                  placeholder="20123456789"
+                  placeholder="Perú"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="contactPhone">Telefono Contacto</Label>
+                <Label htmlFor="ruc">RUC (11 dígitos)</Label>
                 <Input
-                  id="contactPhone"
-                  value={formData.contactPhone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, contactPhone: e.target.value })
-                  }
-                  placeholder="+51 999 999 999"
+                  id="ruc"
+                  value={formData.ruc}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 11);
+                    setFormData({ ...formData, ruc: value });
+                  }}
+                  placeholder="20123456789"
+                  maxLength={11}
+                  className={formData.ruc && formData.ruc.length !== 11 ? "border-red-500" : ""}
                 />
+                {formData.ruc && formData.ruc.length !== 11 && (
+                  <p className="text-xs text-red-500">El RUC debe tener 11 dígitos</p>
+                )}
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="contactPhone">Teléfono Contacto</Label>
+              <Input
+                id="contactPhone"
+                value={formData.contactPhone}
+                onChange={(e) =>
+                  setFormData({ ...formData, contactPhone: e.target.value })
+                }
+                placeholder="+51 999 999 999"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">

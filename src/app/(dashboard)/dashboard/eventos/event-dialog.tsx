@@ -98,7 +98,7 @@ export function EventEditDialog({
     category: event.category,
     status: event.status,
     priority: event.priority || "MEDIO",
-    assignedToId: event.assignedToId || "",
+    assignedToId: event.assignedToId || "none",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,7 +112,7 @@ export function EventEditDialog({
         category: formData.category as "BLOCKER" | "ISSUE" | "RISK" | "CHANGE" | "PAUSE" | "ABSENCE" | "MILESTONE",
         status: formData.status as "ABIERTO" | "EN_PROGRESO" | "RESUELTO" | "CERRADO",
         priority: formData.priority as "CRITICO" | "ALTO" | "MEDIO" | "BAJO" | undefined,
-        assignedToId: formData.assignedToId || null,
+        assignedToId: formData.assignedToId === "none" ? null : formData.assignedToId,
       });
 
       toast({
@@ -272,7 +272,7 @@ export function EventEditDialog({
                     <SelectValue placeholder="Sin asignar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin asignar</SelectItem>
+                    <SelectItem value="none">Sin asignar</SelectItem>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name}

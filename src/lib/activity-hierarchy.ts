@@ -84,6 +84,24 @@ export function getPhaseDateSummary(
 }
 
 /**
+ * Calcula el progreso de un Item basado en el promedio de sus SubItems
+ * @param itemCode - Código del Item
+ * @param activities - Lista de todas las actividades con progress
+ * @returns Progreso calculado (0-100) o null si no tiene subitems
+ */
+export function calculateItemProgress<T extends Activity & { progress: number }>(
+  itemCode: string,
+  activities: T[]
+): number | null {
+  const subItems = getSubItems(itemCode, activities);
+
+  if (subItems.length === 0) return null;
+
+  const totalProgress = subItems.reduce((sum, item) => sum + item.progress, 0);
+  return Math.round(totalProgress / subItems.length);
+}
+
+/**
  * Calcula el rango de fechas de un Item (incluyendo sus SubItems)
  * @param itemCode - Código del Item
  * @param activities - Lista de todas las actividades
@@ -109,6 +127,96 @@ export function getItemDateRange(
     }
     if (activity.endDate) {
       const end = new Date(activity.endDate);
+      if (!maxDate || end > maxDate) maxDate = end;
+    }
+  }
+
+  if (!minDate || !maxDate) return null;
+
+  const totalDays = differenceInDays(maxDate, minDate) + 1;
+  return { startDate: minDate, endDate: maxDate, totalDays };
+}
+
+/**
+ * Obtiene los Items directos de una sección
+ * @param sectionCode - Código de la sección (ej: "3")
+ * @param activities - Lista de todas las actividades
+ * @returns Lista de Items hijos de la sección
+ */
+export function getSectionItems<T extends Activity>(
+  sectionCode: string,
+  activities: T[]
+): T[] {
+  // Una sección "3" tiene hijos "3.1", "3.2", etc.
+  return activities.filter((a) => {
+    const parts = a.code.split(".");
+    if (parts.length !== 2) return false; // Solo Items (nivel 1)
+    return parts[0] === sectionCode;
+  });
+}
+
+/**
+ * Verifica si una sección tiene Items hijos
+ * @param sectionCode - Código de la sección
+ * @param activities - Lista de todas las actividades
+ * @returns true si la sección tiene al menos un Item hijo
+ */
+export function hasSectionItems<T extends Activity>(
+  sectionCode: string,
+  activities: T[]
+): boolean {
+  return getSectionItems(sectionCode, activities).length > 0;
+}
+
+/**
+ * Calcula el progreso de una sección basado en el promedio de sus Items
+ * @param sectionCode - Código de la sección
+ * @param activities - Lista de todas las actividades con progress
+ * @returns Progreso calculado (0-100) o null si no tiene Items
+ */
+export function calculateSectionProgress<T extends Activity & { progress: number }>(
+  sectionCode: string,
+  activities: T[]
+): number | null {
+  const items = getSectionItems(sectionCode, activities);
+  if (items.length === 0) return null;
+
+  // Para cada Item, calcular su progreso (incluyendo de sus SubItems si tiene)
+  let totalProgress = 0;
+  for (const item of items) {
+    const itemProgress = calculateItemProgress(item.code, activities);
+    totalProgress += itemProgress ?? item.progress;
+  }
+
+  return Math.round(totalProgress / items.length);
+}
+
+/**
+ * Calcula el rango de fechas de una sección (incluyendo sus Items y SubItems)
+ * @param sectionCode - Código de la sección
+ * @param activities - Lista de todas las actividades
+ * @returns { startDate, endDate, totalDays } o null
+ */
+export function getSectionDateRange(
+  sectionCode: string,
+  activities: Activity[]
+): { startDate: Date; endDate: Date; totalDays: number } | null {
+  const items = getSectionItems(sectionCode, activities);
+  if (items.length === 0) return null;
+
+  let minDate: Date | null = null;
+  let maxDate: Date | null = null;
+
+  for (const item of items) {
+    // Obtener rango del Item (incluyendo sus SubItems)
+    const itemRange = getItemDateRange(item.code, activities);
+    if (itemRange) {
+      if (!minDate || itemRange.startDate < minDate) minDate = itemRange.startDate;
+      if (!maxDate || itemRange.endDate > maxDate) maxDate = itemRange.endDate;
+    } else if (item.startDate && item.endDate) {
+      const start = new Date(item.startDate);
+      const end = new Date(item.endDate);
+      if (!minDate || start < minDate) minDate = start;
       if (!maxDate || end > maxDate) maxDate = end;
     }
   }

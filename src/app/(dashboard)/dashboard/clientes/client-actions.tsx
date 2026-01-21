@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { MoreHorizontal, Pencil, Trash2, Loader2, Building2, Users, Plus } from "lucide-react";
 import { updateClient, deleteClient } from "./actions";
@@ -49,6 +48,7 @@ interface Client {
   id: string;
   name: string;
   ruc: string | null;
+  country?: string | null;
   address?: string | null;
   contacts: Contact[];
 }
@@ -65,6 +65,7 @@ export function ClientActions({ client }: ClientActionsProps) {
   const [formData, setFormData] = useState({
     name: client.name,
     ruc: client.ruc || "",
+    country: client.country || "",
   });
   const [contacts, setContacts] = useState<ContactData[]>([]);
 
@@ -74,6 +75,7 @@ export function ClientActions({ client }: ClientActionsProps) {
       setFormData({
         name: client.name,
         ruc: client.ruc || "",
+        country: client.country || "",
       });
       setContacts(
         client.contacts.length > 0
@@ -119,6 +121,7 @@ export function ClientActions({ client }: ClientActionsProps) {
       await updateClient(client.id, {
         name: formData.name,
         ruc: formData.ruc || undefined,
+        country: formData.country || undefined,
         contacts: contacts.map((c) => ({
           id: c.id,
           name: c.name,
@@ -177,47 +180,63 @@ export function ClientActions({ client }: ClientActionsProps) {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
             <DialogDescription>
               Modifica los datos del cliente y sus contactos
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="flex flex-col flex-1 overflow-hidden">
-            <ScrollArea className="flex-1">
-              <div className="space-y-6 py-4 px-1">
+          <form onSubmit={handleUpdate}>
+            <div className="space-y-6 py-4">
                 {/* Informacion del Cliente */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                     <Building2 className="h-4 w-4" />
                     Informacion del Cliente
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">
+                      Nombre <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="edit-name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="Nombre del cliente"
+                      required
+                    />
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="edit-name">
-                        Nombre <span className="text-red-500">*</span>
-                      </Label>
+                      <Label htmlFor="edit-country">País</Label>
                       <Input
-                        id="edit-name"
-                        value={formData.name}
+                        id="edit-country"
+                        value={formData.country}
                         onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
+                          setFormData({ ...formData, country: e.target.value })
                         }
-                        placeholder="Nombre del cliente"
-                        required
+                        placeholder="Perú"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="edit-ruc">RUC</Label>
+                      <Label htmlFor="edit-ruc">RUC (11 dígitos)</Label>
                       <Input
                         id="edit-ruc"
                         value={formData.ruc}
-                        onChange={(e) =>
-                          setFormData({ ...formData, ruc: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 11);
+                          setFormData({ ...formData, ruc: value });
+                        }}
                         placeholder="20123456789"
+                        maxLength={11}
+                        className={formData.ruc && formData.ruc.length !== 11 ? "border-red-500" : ""}
                       />
+                      {formData.ruc && formData.ruc.length !== 11 && (
+                        <p className="text-xs text-red-500">El RUC debe tener 11 dígitos</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -255,8 +274,7 @@ export function ClientActions({ client }: ClientActionsProps) {
                     </Button>
                   </motion.div>
                 </div>
-              </div>
-            </ScrollArea>
+            </div>
 
             <DialogFooter className="mt-4 pt-4 border-t">
               <Button

@@ -272,6 +272,48 @@ export async function updateProject(
   return project;
 }
 
+export async function setProjectBaseline(projectId: string, baselineEndDate: Date) {
+  // Solo MANAGER puede establecer baseline
+  await requireRole(["MANAGER"]);
+
+  const project = await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      baselineEndDate,
+    },
+  });
+
+  revalidatePath(`/dashboard/proyectos/${projectId}`);
+
+  // Audit log
+  await logUpdate("Project", projectId,
+    { baselineEndDate: null },
+    { baselineEndDate: baselineEndDate.toISOString() }
+  );
+
+  return project;
+}
+
+export async function updateProjectConfig(
+  projectId: string,
+  config: {
+    baselineEndDate?: Date;
+  }
+) {
+  // Solo MANAGER puede actualizar configuración
+  await requireRole(["MANAGER"]);
+
+  const project = await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      baselineEndDate: config.baselineEndDate,
+    },
+  });
+
+  revalidatePath(`/dashboard/proyectos/${projectId}`);
+  return project;
+}
+
 export async function updateActivityProgress(
   activityId: string,
   progress: number,

@@ -25,6 +25,10 @@ import {
   getSubItems,
   getPhaseDateSummary,
   getItemDateRange,
+  calculateItemProgress,
+  hasSectionItems,
+  getSectionDateRange,
+  calculateSectionProgress,
 } from "@/lib/activity-hierarchy";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -424,16 +428,21 @@ export function GanttChart({
 
   // Estado para Items expandidos (aquellos que tienen SubItems)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => {
-    const itemsWithSubItems = new Set<string>();
+    const itemsWithChildren = new Set<string>();
     phases.forEach((phase) => {
       phase.activities.forEach((activity) => {
         const level = getActivityLevel(activity.code);
+        // Items (nivel 1) con SubItems
         if (level === 1 && hasSubItems(activity.code, phase.activities)) {
-          itemsWithSubItems.add(activity.code);
+          itemsWithChildren.add(activity.code);
+        }
+        // Secciones (nivel 0) con Items
+        if (level === 0 && hasSectionItems(activity.code, phase.activities)) {
+          itemsWithChildren.add(activity.code);
         }
       });
     });
-    return itemsWithSubItems;
+    return itemsWithChildren;
   });
 
   const toggleItem = (itemCode: string) => {
@@ -1035,9 +1044,12 @@ export function GanttChart({
                     })
                     .map((activity) => {
                       const level = getActivityLevel(activity.code);
+                      const isSection = level === 0;
                       const isItem = level === 1;
                       const isSubItem = level === 2;
                       const itemHasChildren = isItem && hasSubItems(activity.code, phase.activities);
+                      const sectionHasItems = isSection && hasSectionItems(activity.code, phase.activities);
+                      const hasChildren = itemHasChildren || sectionHasItems;
 
                       return (
                         <div
@@ -1050,7 +1062,7 @@ export function GanttChart({
                           )}
                           style={{ height: ROW_HEIGHT }}
                           onClick={() => {
-                            if (itemHasChildren) {
+                            if (hasChildren) {
                               // Si es Item con hijos, toggle expand
                               toggleItem(activity.code);
                             } else {
@@ -1064,8 +1076,8 @@ export function GanttChart({
                             // Indentación progresiva según nivel
                             isItem ? "px-4" : "pl-10 pr-4"
                           )}>
-                            {/* Icono expandir/colapsar para Items con SubItems */}
-                            {itemHasChildren && (
+                            {/* Icono expandir/colapsar para Items/Secciones con hijos */}
+                            {hasChildren && (
                               <div
                                 className="flex-shrink-0 cursor-pointer hover:bg-muted rounded p-0.5"
                                 onClick={(e) => {
@@ -1100,17 +1112,31 @@ export function GanttChart({
                               {activity.name}
                             </span>
 
-                            {/* Badge de progreso */}
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                isSubItem ? "text-[10px] px-1.5 py-0" : "text-xs",
-                                activity.status === "COMPLETADO" && "bg-green-100 dark:bg-green-900/30",
-                                activity.status === "EN_PROGRESO" && "bg-blue-100 dark:bg-blue-900/30"
-                              )}
-                            >
-                              {activity.progress}%
-                            </Badge>
+                            {/* Badge de progreso - calculado para Items/Secciones con hijos */}
+                            {(() => {
+                              // Para Items/Secciones con hijos: calcular progreso desde descendientes
+                              let displayProgress = activity.progress;
+                              if (itemHasChildren) {
+                                displayProgress = calculateItemProgress(activity.code, phase.activities) ?? activity.progress;
+                              } else if (sectionHasItems) {
+                                displayProgress = calculateSectionProgress(activity.code, phase.activities) ?? activity.progress;
+                              }
+                              const isComplete = displayProgress === 100;
+                              const isInProgress = displayProgress > 0 && displayProgress < 100;
+
+                              return (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    isSubItem ? "text-[10px] px-1.5 py-0" : "text-xs",
+                                    isComplete && "bg-green-100 dark:bg-green-900/30",
+                                    isInProgress && "bg-blue-100 dark:bg-blue-900/30"
+                                  )}
+                                >
+                                  {displayProgress}%
+                                </Badge>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
@@ -1279,11 +1305,13 @@ export function GanttChart({
                     .map((activity) => {
                       const isSelected = selectedActivityId === activity.id;
                       const level = getActivityLevel(activity.code);
+                      const isSection = level === 0;
                       const isItem = level === 1;
                       const isSubItem = level === 2;
                       const itemHasChildren = isItem && hasSubItems(activity.code, phase.activities);
+                      const sectionHasItems = isSection && hasSectionItems(activity.code, phase.activities);
 
-                      // Para Items con SubItems: calcular rango desde sus hijos
+                      // Para Items con SubItems o Secciones con Items: calcular rango desde sus hijos
                       // Para otros: usar las fechas propias de la actividad
                       let barPosition: { left: number; width: number } | null = null;
                       let isSummaryBar = false;
@@ -1302,6 +1330,21 @@ export function GanttChart({
                           summaryRange = {
                             startDate: dateRange_item.startDate,
                             endDate: dateRange_item.endDate,
+                          };
+                        }
+                      } else if (sectionHasItems) {
+                        // Calcular rango desde Items hijos (para secciones como "3" Desarrollo)
+                        const dateRange_section = getSectionDateRange(activity.code, phase.activities);
+                        if (dateRange_section) {
+                          const startOffset = differenceInDays(dateRange_section.startDate, dateRange.start);
+                          barPosition = {
+                            left: startOffset * CELL_WIDTH,
+                            width: dateRange_section.totalDays * CELL_WIDTH - 4,
+                          };
+                          isSummaryBar = true;
+                          summaryRange = {
+                            startDate: dateRange_section.startDate,
+                            endDate: dateRange_section.endDate,
                           };
                         }
                       } else {

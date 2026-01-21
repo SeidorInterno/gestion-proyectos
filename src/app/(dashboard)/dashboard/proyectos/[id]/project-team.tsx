@@ -222,12 +222,15 @@ export function ProjectTeam({ projectId, assignments }: ProjectTeamProps) {
                         min="1"
                         max="100"
                         value={formData.allocationPercentage}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const percentage = Math.min(100, Math.max(1, parseInt(e.target.value) || 1));
+                          const hours = parseFloat(((percentage / 100) * 8).toFixed(2));
                           setFormData({
                             ...formData,
-                            allocationPercentage: parseInt(e.target.value) || 100,
-                          })
-                        }
+                            allocationPercentage: percentage,
+                            hoursPerDay: hours,
+                          });
+                        }}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -236,18 +239,24 @@ export function ProjectTeam({ projectId, assignments }: ProjectTeamProps) {
                         id="hours"
                         type="number"
                         min="0.5"
-                        max="24"
+                        max="8"
                         step="0.5"
                         value={formData.hoursPerDay}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const hours = Math.min(8, Math.max(0.5, parseFloat(e.target.value) || 0.5));
+                          const percentage = Math.round((hours / 8) * 100);
                           setFormData({
                             ...formData,
-                            hoursPerDay: parseFloat(e.target.value) || 8,
-                          })
-                        }
+                            hoursPerDay: hours,
+                            allocationPercentage: percentage,
+                          });
+                        }}
                       />
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    100% = 8 horas/día (jornada completa)
+                  </p>
                 </div>
                 <DialogFooter>
                   <Button

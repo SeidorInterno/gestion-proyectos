@@ -25,6 +25,12 @@ import {
 import { Calendar, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+
+// Ajusta la fecha UTC para mostrar correctamente en cualquier timezone
+function adjustDateForDisplay(date: Date): Date {
+  const d = new Date(date);
+  return new Date(d.getTime() + d.getTimezoneOffset() * 60 * 1000);
+}
 import { toast } from "@/hooks/use-toast";
 import { deleteHoliday } from "./actions";
 
@@ -81,14 +87,16 @@ export function HolidayList({ holidays, year }: HolidayListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {holidays.map((holiday) => (
+          {holidays.map((holiday) => {
+            const displayDate = adjustDateForDisplay(new Date(holiday.date));
+            return (
             <TableRow key={holiday.id}>
               <TableCell>
-                {format(new Date(holiday.date), "dd/MM/yyyy")}
+                {format(displayDate, "dd/MM/yyyy")}
               </TableCell>
               <TableCell>
                 <Badge variant="outline">
-                  {format(new Date(holiday.date), "EEEE", { locale: es })}
+                  {format(displayDate, "EEEE", { locale: es })}
                 </Badge>
               </TableCell>
               <TableCell>{holiday.name}</TableCell>
@@ -103,7 +111,8 @@ export function HolidayList({ holidays, year }: HolidayListProps) {
                 </Button>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
           {holidays.length === 0 && (
             <TableRow>
               <TableCell colSpan={4} className="text-center py-8">

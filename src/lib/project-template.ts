@@ -135,7 +135,7 @@ export const SAM_TEMPLATE: PhaseTemplate[] = [
     order: 3,
     activities: [
       {
-        code: "3",
+        code: "3.1",
         name: "Desarrollo",
         defaultDuration: 0,
         participationType: "SEIDOR",

@@ -21,6 +21,9 @@ const routeLabels: Record<string, string> = {
   calendario: "Calendario",
   reportes: "Reportes",
   configuracion: "Configuracion",
+  eventos: "Eventos",
+  recursos: "Recursos",
+  perfil: "Perfil",
   nuevo: "Nuevo",
 };
 

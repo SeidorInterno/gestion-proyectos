@@ -131,6 +131,7 @@ model User {
   notifications     Notification[]
   eventsAssigned    ProjectEvent[]      @relation("EventAssignee")
   eventsReported    ProjectEvent[]      @relation("EventReporter")
+  documentsUploaded ProjectDocument[]   @relation("DocumentUploader")
 
   @@map("users")
 }
@@ -139,6 +140,7 @@ model Client {
   id        String   @id @default(cuid())
   name      String
   ruc       String?  @unique
+  country   String?
   address   String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -194,6 +196,7 @@ model Project {
   phases      Phase[]
   assignments ProjectAssignment[]
   events      ProjectEvent[]
+  documents   ProjectDocument[]
 
   @@index([deletedAt])
   @@map("projects")
@@ -333,6 +336,38 @@ model ProjectEvent {
 
   @@index([deletedAt])
   @@map("project_events")
+}
+
+// Tipos de documentos del proyecto
+enum DocumentType {
+  PDD           // Process Design Document
+  DSD           // Solution Design Document
+  MANUAL        // Manual de Usuario
+  ACTA          // Actas de reunión
+  REQUERIMIENTO // Documento de requerimientos
+  OTRO          // Otros documentos
+}
+
+// Documentos del proyecto (links a SharePoint)
+model ProjectDocument {
+  id          String       @id @default(cuid())
+  name        String       // Nombre del documento
+  type        DocumentType // Tipo de documento
+  url         String       // URL de SharePoint
+  description String?      // Descripción opcional
+  version     String?      // Versión del documento (ej: "1.0", "2.1")
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  uploadedById String
+  uploadedBy   User        @relation("DocumentUploader", fields: [uploadedById], references: [id])
+
+  @@index([projectId])
+  @@map("project_documents")
 }
 
 // Audit Log para historial de cambios

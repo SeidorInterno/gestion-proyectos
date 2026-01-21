@@ -372,6 +372,8 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
                   <Input
                     id="startDate"
                     type="date"
+                    min="2020-01-01"
+                    max="2099-12-31"
                     value={formData.startDate}
                     onChange={(e) =>
                       setFormData({ ...formData, startDate: e.target.value })

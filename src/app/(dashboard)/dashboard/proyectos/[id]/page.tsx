@@ -9,8 +9,6 @@ import {
   Users,
   FileText,
   ArrowLeft,
-  Download,
-  Settings,
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +16,9 @@ import { GanttChartWrapper } from "@/components/gantt/gantt-chart-wrapper";
 import { ProjectTeam } from "./project-team";
 import { ProjectEvents } from "./project-events";
 import { ProgressComparisonCard } from "@/components/progress-comparison-card";
+import { ExportDropdown } from "./export-dropdown";
+import { ConfigDialog } from "./config-dialog";
+import { ProjectDocuments } from "./project-documents";
 import { auth } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import {
@@ -63,6 +64,12 @@ async function getProject(id: string) {
           assignedTo: { select: { id: true, name: true } },
           reportedBy: { select: { id: true, name: true } },
           activity: { select: { id: true, code: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+      documents: {
+        include: {
+          uploadedBy: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "desc" },
       },
@@ -200,14 +207,32 @@ export default async function ProjectDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-          <Button variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            Configurar
-          </Button>
+          <ExportDropdown
+            project={{
+              id: project.id,
+              name: project.name,
+              code: project.code,
+              status: project.status,
+              startDate: project.startDate,
+              tool: project.tool,
+              client: project.client,
+              manager: project.manager,
+              phases: project.phases,
+              assignments: project.assignments,
+            }}
+            actualProgress={actualProgress}
+            estimatedProgress={estimatedProgress}
+          />
+          <ConfigDialog
+            project={{
+              id: project.id,
+              name: project.name,
+              startDate: project.startDate,
+              baselineEndDate: project.baselineEndDate,
+              status: project.status,
+            }}
+            projectEndDate={projectEndDate}
+          />
         </div>
       </div>
 
@@ -336,20 +361,11 @@ export default async function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="docs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documentos del Proyecto</CardTitle>
-              <CardDescription>
-                PDD, DSD, Manuales y otros documentos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-2" />
-                <p>No hay documentos cargados</p>
-              </div>
-            </CardContent>
-          </Card>
+          <ProjectDocuments
+            projectId={project.id}
+            documents={project.documents}
+            currentUserId={currentUserId}
+          />
         </TabsContent>
 
         <TabsContent value="events">

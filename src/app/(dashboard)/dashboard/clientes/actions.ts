@@ -19,7 +19,8 @@ const contactSchema = z.object({
 // Schema para cliente con contactos
 const clientSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  ruc: z.string().optional(),
+  ruc: z.string().regex(/^\d{11}$/, "El RUC debe tener exactamente 11 dígitos").optional().or(z.literal("")),
+  country: z.string().optional(),
   address: z.string().optional(),
   contacts: z.array(contactSchema).min(1, "Debe agregar al menos un contacto"),
 });
@@ -46,6 +47,7 @@ export async function createClient(data: ClientInput) {
     data: {
       name: validated.name,
       ruc: validated.ruc || null,
+      country: validated.country || null,
       address: validated.address || null,
       contacts: {
         create: contactsWithPrimary,
@@ -60,6 +62,7 @@ export async function createClient(data: ClientInput) {
   await logCreate("Client", client.id, {
     name: client.name,
     ruc: client.ruc,
+    country: client.country,
     address: client.address,
     contactsCount: client.contacts.length,
   });
@@ -109,6 +112,7 @@ export async function updateClient(id: string, data: ClientInput) {
       data: {
         name: validated.name,
         ruc: validated.ruc || null,
+        country: validated.country || null,
         address: validated.address || null,
       },
     });
@@ -181,8 +185,8 @@ export async function updateClient(id: string, data: ClientInput) {
   // Audit log
   if (oldClient && updatedClient) {
     await logUpdate("Client", id,
-      { name: oldClient.name, ruc: oldClient.ruc, address: oldClient.address, contactsCount: oldClient.contacts.length },
-      { name: updatedClient.name, ruc: updatedClient.ruc, address: updatedClient.address, contactsCount: updatedClient.contacts.length }
+      { name: oldClient.name, ruc: oldClient.ruc, country: oldClient.country, address: oldClient.address, contactsCount: oldClient.contacts.length },
+      { name: updatedClient.name, ruc: updatedClient.ruc, country: updatedClient.country, address: updatedClient.address, contactsCount: updatedClient.contacts.length }
     );
   }
 
@@ -221,6 +225,7 @@ export async function deleteClient(id: string) {
   await logSoftDelete("Client", id, {
     name: client.name,
     ruc: client.ruc,
+    country: client.country,
     address: client.address,
     contactsCount: client.contacts.length,
   });
