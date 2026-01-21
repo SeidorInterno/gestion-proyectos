@@ -1,5 +1,6 @@
-import { auth } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 // Rutas protegidas por rol
 const roleProtectedRoutes: Record<string, string[]> = {
@@ -13,24 +14,26 @@ const roleProtectedRoutes: Record<string, string[]> = {
   "/api/reports": ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"],
 };
 
-export default auth((req) => {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const session = req.auth;
 
   // Rutas públicas
   if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
 
-  // Si no hay sesión, redirigir a login
-  if (!session?.user) {
+  // Obtener token JWT (ligero, no necesita Prisma)
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+  // Si no hay token, redirigir a login
+  if (!token) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // Verificar permisos por rol
-  const userRole = session.user.roleCode;
+  const userRole = token.roleCode as string;
 
   for (const [route, allowedRoles] of Object.entries(roleProtectedRoutes)) {
     if (pathname.startsWith(route)) {
@@ -45,7 +48,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|public).*)"],
