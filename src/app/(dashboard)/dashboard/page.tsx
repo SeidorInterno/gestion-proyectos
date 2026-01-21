@@ -209,14 +209,14 @@ export default async function DashboardPage() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      BLOCKER: "text-red-500 bg-red-50 border-red-200",
-      ISSUE: "text-orange-500 bg-orange-50 border-orange-200",
-      RISK: "text-yellow-500 bg-yellow-50 border-yellow-200",
-      CHANGE_REQUEST: "text-blue-500 bg-blue-50 border-blue-200",
-      DECISION: "text-purple-500 bg-purple-50 border-purple-200",
-      PAUSA: "text-gray-500 bg-gray-50 border-gray-200",
+      BLOCKER: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800",
+      ISSUE: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800",
+      RISK: "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800",
+      CHANGE_REQUEST: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800",
+      DECISION: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800",
+      PAUSA: "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
     };
-    return colors[category] || "text-gray-500 bg-gray-50 border-gray-200";
+    return colors[category] || "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700";
   };
 
   return (
@@ -376,12 +376,12 @@ export default async function DashboardPage() {
                   <Link
                     key={blocker.id}
                     href={`/dashboard/proyectos/${blocker.project.id}`}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100 transition-colors block"
+                    className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors block"
                   >
                     <AlertOctagon className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
                     <div className="space-y-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{blocker.title}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm font-medium truncate text-red-900 dark:text-red-100">{blocker.title}</p>
+                      <p className="text-xs text-red-700 dark:text-red-300">
                         {blocker.project.name}
                       </p>
                     </div>
@@ -418,11 +418,11 @@ export default async function DashboardPage() {
                   <Link
                     key={project.id}
                     href={`/dashboard/proyectos/${project.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors block"
+                    className="flex items-center justify-between p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/50 border border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-colors block"
                   >
                     <div className="space-y-1">
-                      <p className="font-medium">{project.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-medium text-yellow-900 dark:text-yellow-100">{project.name}</p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
                         {project.client.name}
                       </p>
                     </div>
