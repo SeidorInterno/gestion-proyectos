@@ -23,10 +23,11 @@ export async function middleware(req: NextRequest) {
   }
 
   // Obtener token JWT (ligero, no necesita Prisma)
-  // NextAuth v5 usa AUTH_SECRET, pero también soporta NEXTAUTH_SECRET
+  // NextAuth v5 usa AUTH_SECRET y cookie "authjs.session-token"
   const token = await getToken({
     req,
-    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    salt: "authjs.session-token",
   });
 
   // Si no hay token, redirigir a login
