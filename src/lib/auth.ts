@@ -59,6 +59,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
+    // Extender el callback jwt para incluir campos adicionales
     async jwt({ token, user }) {
       if (user) {
         const customUser = user as {

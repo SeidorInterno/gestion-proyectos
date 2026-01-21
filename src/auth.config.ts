@@ -12,6 +12,26 @@ export const authConfig: NextAuthConfig = {
   trustHost: true,
   providers: [], // Los providers se agregan en auth.ts
   callbacks: {
+    // Este callback es necesario para que roleCode esté disponible en el middleware
+    jwt({ token, user }) {
+      if (user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const u = user as any;
+        token.id = u.id;
+        token.roleCode = u.roleCode;
+        token.roleName = u.roleName;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).id = token.id;
+        (session.user as any).roleCode = token.roleCode;
+        (session.user as any).roleName = token.roleName;
+      }
+      return session;
+    },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
