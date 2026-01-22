@@ -209,7 +209,7 @@ export function NewClientButton({ variant = "default" }: NewClientButtonProps) {
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.name.trim() || (formData.ruc && formData.ruc.length !== 11)}>
+            <Button type="submit" disabled={isLoading || !formData.name.trim() || (formData.ruc.length > 0 && formData.ruc.length !== 11)}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
