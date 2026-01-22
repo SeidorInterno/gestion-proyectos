@@ -30,6 +30,7 @@ interface Project {
   id: string;
   name: string;
   code: string | null;
+  pep: string;
   description: string | null;
   status: string;
   tool: string;
@@ -89,6 +90,7 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.pep.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.manager?.name.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
@@ -116,7 +118,7 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, cliente, codigo o PM..."
+            placeholder="Buscar por nombre, cliente, codigo, PEP o PM..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -171,6 +173,7 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Proyecto</TableHead>
+            <TableHead>PEP</TableHead>
             <TableHead>Cliente</TableHead>
             <TableHead>Herramienta</TableHead>
             <TableHead>Fecha Inicio</TableHead>
@@ -199,6 +202,11 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
                     )}
                   </div>
                 </Link>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {project.pep}
+                </Badge>
               </TableCell>
               <TableCell>{project.client.name}</TableCell>
               <TableCell>
@@ -242,7 +250,7 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
           ))}
           {filteredProjects.length === 0 && (
             <TableRow>
-              <TableCell colSpan={10} className="text-center py-8">
+              <TableCell colSpan={11} className="text-center py-8">
                 <FolderKanban className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
                 {hasActiveFilters ? (
                   <>

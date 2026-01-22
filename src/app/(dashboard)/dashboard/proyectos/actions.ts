@@ -45,6 +45,7 @@ const phaseDurationsSchema = z.object({
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   description: z.string().optional(),
+  pep: z.string().min(1, "El código PEP es requerido"),
   clientId: z.string().min(1, "El cliente es requerido"),
   managerId: z.string().optional(),
   tool: z.string().default("UIPATH"),
@@ -55,6 +56,7 @@ const projectSchema = z.object({
 export async function createProject(data: {
   name: string;
   description?: string;
+  pep: string;
   clientId: string;
   managerId?: string;
   tool?: string;
@@ -74,6 +76,7 @@ export async function createProject(data: {
     data: {
       name: validated.name,
       code,
+      pep: validated.pep,
       description: validated.description || null,
       clientId: validated.clientId,
       managerId: validated.managerId || null,

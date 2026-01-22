@@ -41,6 +41,7 @@ interface Project {
   id: string;
   name: string;
   description?: string | null;
+  pep?: string;
   clientId: string;
   managerId?: string | null;
   tool: string;
@@ -86,6 +87,7 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    pep: "",
     clientId: "",
     managerId: "",
     tool: "UIPATH",
@@ -133,6 +135,7 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
       setFormData({
         name: project.name || "",
         description: project.description || "",
+        pep: project.pep || "",
         clientId: project.clientId || "",
         managerId: project.managerId || "",
         tool: project.tool || "UIPATH",
@@ -145,6 +148,7 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
       setFormData({
         name: "",
         description: "",
+        pep: "",
         clientId: "",
         managerId: "",
         tool: "UIPATH",
@@ -206,7 +210,12 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
         router.refresh();
       } else {
         const newProject = await createProject({
-          ...formData,
+          name: formData.name,
+          description: formData.description,
+          pep: formData.pep,
+          clientId: formData.clientId,
+          managerId: formData.managerId,
+          tool: formData.tool,
           startDate: formData.startDate ? new Date(formData.startDate) : undefined,
           phaseDurations,
         });
@@ -258,6 +267,23 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
                 placeholder="Ej: Automatizacion de Facturas"
                 required
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="pep">Codigo PEP (SAP) *</Label>
+              <Input
+                id="pep"
+                value={formData.pep}
+                onChange={(e) =>
+                  setFormData({ ...formData, pep: e.target.value.toUpperCase() })
+                }
+                placeholder="Ej: PE-2024-001"
+                required
+                disabled={isEditMode}
+              />
+              <p className="text-xs text-muted-foreground">
+                Identificador unico para integracion con SAP
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -378,6 +404,7 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
                     onChange={(e) =>
                       setFormData({ ...formData, startDate: e.target.value })
                     }
+                    onKeyDown={(e) => e.preventDefault()}
                   />
                 </div>
               )}
@@ -496,7 +523,7 @@ export function ProjectDialog({ children, project, onSuccess }: ProjectDialogPro
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.clientId}>
+            <Button type="submit" disabled={isLoading || !formData.clientId || (!isEditMode && !formData.pep)}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

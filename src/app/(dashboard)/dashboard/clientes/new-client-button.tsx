@@ -144,15 +144,22 @@ export function NewClientButton({ variant = "default" }: NewClientButtonProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="ruc">RUC</Label>
+                    <Label htmlFor="ruc">RUC (11 digitos)</Label>
                     <Input
                       id="ruc"
                       value={formData.ruc}
-                      onChange={(e) =>
-                        setFormData({ ...formData, ruc: e.target.value })
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 11);
+                        setFormData({ ...formData, ruc: value });
+                      }}
                       placeholder="20123456789"
+                      maxLength={11}
+                      inputMode="numeric"
+                      className={formData.ruc && formData.ruc.length !== 11 ? "border-red-500" : ""}
                     />
+                    {formData.ruc && formData.ruc.length !== 11 && (
+                      <p className="text-xs text-red-500">El RUC debe tener 11 digitos</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -202,7 +209,7 @@ export function NewClientButton({ variant = "default" }: NewClientButtonProps) {
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.name.trim()}>
+            <Button type="submit" disabled={isLoading || !formData.name.trim() || (formData.ruc && formData.ruc.length !== 11)}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

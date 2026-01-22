@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
 export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "STATUS_CHANGE" | "SOFT_DELETE" | "RESTORE";
-export type AuditEntity = "Project" | "Activity" | "Event" | "User" | "Client" | "Assignment" | "Phase" | "ProjectDocument";
+export type AuditEntity = "Project" | "Activity" | "Event" | "User" | "Client" | "Assignment" | "Phase" | "ProjectDocument" | "TimeEntry";
 
 interface CreateAuditLogParams {
   action: AuditAction;

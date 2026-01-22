@@ -202,7 +202,7 @@ export default async function ProjectDetailPage({
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              {project.client.name} | {project.code || "Sin código"}
+              {project.client.name} | {project.code || "Sin código"} | <span className="font-mono">{project.pep}</span>
             </p>
           </div>
         </div>

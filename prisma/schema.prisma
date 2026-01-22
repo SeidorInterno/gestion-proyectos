@@ -132,6 +132,7 @@ model User {
   eventsAssigned    ProjectEvent[]      @relation("EventAssignee")
   eventsReported    ProjectEvent[]      @relation("EventReporter")
   documentsUploaded ProjectDocument[]   @relation("DocumentUploader")
+  timeEntries       TimeEntry[]
 
   @@map("users")
 }
@@ -174,6 +175,7 @@ model Project {
   name        String
   description String?
   code        String?       @unique
+  pep         String        @unique  // Código SAP/PEP para integración y billing
   status      ProjectStatus @default(PLANIFICACION)
   tool        RpaTool       @default(UIPATH)
   startDate   DateTime?
@@ -197,6 +199,7 @@ model Project {
   assignments ProjectAssignment[]
   events      ProjectEvent[]
   documents   ProjectDocument[]
+  timeEntries TimeEntry[]
 
   @@index([deletedAt])
   @@map("projects")
@@ -240,9 +243,10 @@ model Activity {
   baselineDuration   Int?
   isLocked           Boolean           @default(true)
 
-  phaseId   String
-  phase     Phase  @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  events    ProjectEvent[]
+  phaseId     String
+  phase       Phase        @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  events      ProjectEvent[]
+  timeEntries TimeEntry[]
 
   @@index([deletedAt])
   @@map("activities")
@@ -387,4 +391,30 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// Registro de horas trabajadas por proyecto
+model TimeEntry {
+  id          String    @id @default(cuid())
+  date        DateTime                        // Fecha del trabajo
+  hours       Float                           // Horas (0.5 - 24)
+  description String    @db.Text              // Qué se hizo
+  task        String?                         // Nombre de tarea (opcional)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  activityId  String?                         // Opcional: vincular a actividad Gantt
+  activity    Activity? @relation(fields: [activityId], references: [id])
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([date])
+  @@map("time_entries")
 }
