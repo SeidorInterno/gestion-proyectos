@@ -18,6 +18,7 @@ import {
   ChevronRight,
   AlertCircle,
   Clock,
+  Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -62,6 +63,12 @@ const menuItems = [
     title: "Registro de Horas",
     href: "/dashboard/timetracking",
     icon: Clock,
+    allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"] as RoleCode[],
+  },
+  {
+    title: "Soporte",
+    href: "/dashboard/soporte",
+    icon: Headphones,
     allowedRoles: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"] as RoleCode[],
   },
   {

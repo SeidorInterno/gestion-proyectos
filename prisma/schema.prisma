@@ -77,6 +77,35 @@ enum ChangeStatus {
   REJECTED
 }
 
+// Support Pool Enums
+enum SupportPoolStatus {
+  ACTIVA
+  PAUSADA
+  CERRADA
+  AGOTADA
+}
+
+enum TicketStage {
+  BACKLOG
+  EVALUACION
+  EN_ESPERA
+  ATENDIENDO
+  ATENDIDO
+  CANCELADO
+}
+
+enum TicketType {
+  INCIDENCIA
+  CAMBIO
+  MEJORA
+}
+
+enum TicketPriority {
+  ALTA
+  MEDIA
+  BAJA
+}
+
 // Models
 
 // Tabla de Roles
@@ -134,6 +163,15 @@ model User {
   documentsUploaded ProjectDocument[]   @relation("DocumentUploader")
   timeEntries       TimeEntry[]
 
+  // Soporte
+  supportPoolAssignments SupportPoolAssignment[]
+  ticketsAssigned        SupportTicket[]         @relation("TicketAssignee")
+  ticketsCreated         SupportTicket[]         @relation("TicketCreator")
+  ticketComments         TicketComment[]
+  ticketAttachments      TicketAttachment[]
+  ticketTimeEntries      TicketTimeEntry[]
+  ticketHistory          TicketHistory[]
+
   @@map("users")
 }
 
@@ -147,8 +185,9 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  contacts Contact[]
-  projects Project[]
+  contacts     Contact[]
+  projects     Project[]
+  supportPools SupportPool[]
 
   @@map("clients")
 }
@@ -195,11 +234,13 @@ model Project {
   managerId   String?
   manager     User?         @relation("ProjectManager", fields: [managerId], references: [id])
 
-  phases      Phase[]
-  assignments ProjectAssignment[]
-  events      ProjectEvent[]
-  documents   ProjectDocument[]
-  timeEntries TimeEntry[]
+  phases         Phase[]
+  assignments    ProjectAssignment[]
+  events         ProjectEvent[]
+  documents      ProjectDocument[]
+  timeEntries    TimeEntry[]
+  supportPools   SupportPool[]
+  supportTickets SupportTicket[]
 
   @@index([deletedAt])
   @@map("projects")
@@ -417,4 +458,211 @@ model TimeEntry {
   @@index([projectId])
   @@index([date])
   @@map("time_entries")
+}
+
+// ==================== SOPORTE ====================
+
+// Bolsa de horas de soporte
+model SupportPool {
+  id          String            @id @default(cuid())
+  name        String
+  description String?           @db.Text
+  pep         String            @unique    // Código SAP/PEP para facturación
+  status      SupportPoolStatus @default(ACTIVA)
+
+  totalHours           Float              // Horas totales contratadas
+  autoAcceptThreshold  Float?             // Umbral para auto-aceptar estimaciones
+
+  startDate   DateTime?
+  endDate     DateTime?
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  clientId    String
+  client      Client            @relation(fields: [clientId], references: [id])
+
+  projectId   String?           // Proyecto opcional asociado
+  project     Project?          @relation(fields: [projectId], references: [id])
+
+  assignments SupportPoolAssignment[]
+  flows       SupportFlow[]
+  tickets     SupportTicket[]
+
+  @@index([clientId])
+  @@index([deletedAt])
+  @@map("support_pools")
+}
+
+// Asignación de recursos a bolsa de soporte (N:N)
+model SupportPoolAssignment {
+  id        String   @id @default(cuid())
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  poolId    String
+  pool      SupportPool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@unique([poolId, userId])
+  @@map("support_pool_assignments")
+}
+
+// Catálogo de flujos/procesos por bolsa
+model SupportFlow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  poolId      String
+  pool        SupportPool     @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  tickets     SupportTicket[]
+
+  @@index([poolId])
+  @@map("support_flows")
+}
+
+// Ticket de soporte
+model SupportTicket {
+  id           String         @id @default(cuid())
+  code         String         @unique    // TKT-2025-0001
+  title        String
+  description  String         @db.Text
+
+  stage        TicketStage    @default(BACKLOG)
+  type         TicketType     @default(INCIDENCIA)
+  priority     TicketPriority @default(MEDIA)
+
+  // URLs de adjuntos (SharePoint)
+  screenshotUrl String?       // Screenshot o correo
+  excelUrl      String?       // Excel con transacciones
+
+  // Fechas
+  incidentDate  DateTime?     // Cuando ocurrió el incidente
+  reportedDate  DateTime      @default(now())
+  startedAt     DateTime?     // Cuando empezó a atenderse
+  resolvedAt    DateTime?     // Cuando se resolvió
+
+  // Contacto
+  reporterEmail String
+  ccEmails      String?       @db.Text  // JSON array de emails
+
+  // Estimación
+  estimatedHours Float?
+  autoAccepted   Boolean      @default(false)
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  poolId      String
+  pool        SupportPool    @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  flowId      String?
+  flow        SupportFlow?   @relation(fields: [flowId], references: [id])
+
+  // Proyecto RPA relacionado (si aplica)
+  projectId   String?
+  project     Project?       @relation(fields: [projectId], references: [id])
+
+  assignedToId String?
+  assignedTo   User?         @relation("TicketAssignee", fields: [assignedToId], references: [id])
+
+  createdById  String
+  createdBy    User          @relation("TicketCreator", fields: [createdById], references: [id])
+
+  comments     TicketComment[]
+  attachments  TicketAttachment[]
+  timeEntries  TicketTimeEntry[]
+  history      TicketHistory[]
+
+  @@index([poolId])
+  @@index([stage])
+  @@index([deletedAt])
+  @@map("support_tickets")
+}
+
+// Comentarios en tickets
+model TicketComment {
+  id         String   @id @default(cuid())
+  content    String   @db.Text
+  isInternal Boolean  @default(false)  // Comentario interno (no visible al cliente)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId   String
+  author     User          @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_comments")
+}
+
+// Adjuntos adicionales en tickets
+model TicketAttachment {
+  id          String   @id @default(cuid())
+  name        String
+  url         String   // URL de SharePoint
+  description String?
+  createdAt   DateTime @default(now())
+
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  uploadedById String
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_attachments")
+}
+
+// Registro de horas por ticket
+model TicketTimeEntry {
+  id          String   @id @default(cuid())
+  date        DateTime
+  hours       Float
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+
+  @@index([ticketId])
+  @@index([userId])
+  @@index([date])
+  @@map("ticket_time_entries")
+}
+
+// Historial de cambios del ticket
+model TicketHistory {
+  id         String   @id @default(cuid())
+  field      String   // stage, priority, assignedTo, etc.
+  oldValue   String?
+  newValue   String?
+  createdAt  DateTime @default(now())
+
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_history")
 }

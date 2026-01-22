@@ -762,36 +762,72 @@ export function GanttChart({
     };
   }, [phases, startDate]);
 
-  // Generar columnas de fechas
+  // Generar columnas de fechas (SOLO días laborables - sin fines de semana ni feriados)
   const dateColumns = useMemo(() => {
     const columns = [];
+    let workingDayNumber = 1;
+
     for (let i = 0; i < totalDays; i++) {
       const date = addDays(dateRange.start, i);
+      const isWeekendDay = isWeekend(date);
       const holiday = holidays.find((h) => isSameDay(new Date(h.date), date));
+      const isHolidayDay = !!holiday;
+
+      // Saltar fines de semana y feriados
+      if (isWeekendDay || isHolidayDay) {
+        continue;
+      }
+
       columns.push({
         date,
-        dayNumber: i + 1,
+        dayNumber: workingDayNumber++,
         dayOfWeek: format(date, "EEE", { locale: es }),
         dateFormatted: format(date, "dd/MM", { locale: es }),
-        isWeekend: isWeekend(date),
-        isHoliday: !!holiday,
-        holidayName: holiday?.name,
+        isWeekend: false,
+        isHoliday: false,
+        holidayName: undefined,
       });
     }
     return columns;
   }, [dateRange.start, totalDays, holidays]);
 
+  // Helper: encontrar el índice de una fecha en dateColumns (días laborables)
+  const getWorkingDayIndex = (targetDate: Date): number => {
+    const normalizedTarget = normalizeDateOnly(targetDate);
+    for (let i = 0; i < dateColumns.length; i++) {
+      if (isSameDay(dateColumns[i].date, normalizedTarget)) {
+        return i;
+      }
+    }
+    // Si la fecha no está en las columnas, buscar la más cercana anterior
+    for (let i = dateColumns.length - 1; i >= 0; i--) {
+      if (dateColumns[i].date <= normalizedTarget) {
+        return i;
+      }
+    }
+    return 0;
+  };
+
+  // Helper: contar días laborables entre dos fechas
+  const countWorkingDays = (startDate: Date, endDate: Date): number => {
+    const startIdx = getWorkingDayIndex(startDate);
+    const endIdx = getWorkingDayIndex(endDate);
+    return Math.max(1, endIdx - startIdx + 1);
+  };
+
   // Calcular posicion del dia actual (usando timezone Lima)
   const todayPosition = useMemo(() => {
     const today = getTodayInLima();
-    const todayIndex = differenceInDays(today, dateRange.start);
-    const isVisible = todayIndex >= 0 && todayIndex < totalDays;
+    const todayIndex = getWorkingDayIndex(today);
+    // Verificar si hoy es un día laborable que está en las columnas
+    const isWorkingDay = dateColumns.some((col) => isSameDay(col.date, today));
+    const isVisible = isWorkingDay && todayIndex >= 0 && todayIndex < dateColumns.length;
     return {
       index: todayIndex,
       isVisible,
       left: todayIndex * CELL_WIDTH + CELL_WIDTH / 2,
     };
-  }, [dateRange.start, totalDays]);
+  }, [dateColumns, getWorkingDayIndex]);
 
   const togglePhase = (phaseId: string) => {
     const newExpanded = new Set(expandedPhases);
@@ -808,12 +844,12 @@ export function GanttChart({
       return null;
     }
 
-    // Normalizar fechas para consistencia con dateRange
-    const actStart = normalizeDateOnly(new Date(activity.startDate));
-    const actEnd = normalizeDateOnly(new Date(activity.endDate));
+    // Usar índices de días laborables
+    const actStart = new Date(activity.startDate);
+    const actEnd = new Date(activity.endDate);
 
-    const startOffset = differenceInDays(actStart, dateRange.start);
-    const duration = differenceInDays(actEnd, actStart) + 1;
+    const startOffset = getWorkingDayIndex(actStart);
+    const duration = countWorkingDays(actStart, actEnd);
 
     return {
       left: startOffset * CELL_WIDTH,
@@ -821,37 +857,37 @@ export function GanttChart({
     };
   };
 
-  // Calcular posicion de las barras de bloqueo
+  // Calcular posicion de las barras de bloqueo (usando días laborables)
   const getBlockerBarPosition = (blocker: BlockerPeriod) => {
-    // Normalizar fechas para consistencia
-    const blockerStart = normalizeDateOnly(new Date(blocker.startDate));
-    const startOffset = differenceInDays(blockerStart, dateRange.start);
+    const blockerStart = new Date(blocker.startDate);
+    const startOffset = getWorkingDayIndex(blockerStart);
 
-    // Calcular duración: usar impactDays si está disponible, sino calcular desde fechas
+    // Calcular duración en días laborables
     let duration: number;
     if (blocker.impactDays && blocker.impactDays > 0) {
-      // Usar los días de impacto definidos
+      // Usar los días de impacto definidos (ya son días laborables)
       duration = blocker.impactDays;
     } else if (blocker.endDate) {
-      // Si está resuelto y no tiene impactDays, calcular desde las fechas reales
-      const blockerEnd = normalizeDateOnly(new Date(blocker.endDate));
-      duration = differenceInDays(blockerEnd, blockerStart) + 1;
+      // Si está resuelto y no tiene impactDays, calcular días laborables entre fechas
+      const blockerEnd = new Date(blocker.endDate);
+      duration = countWorkingDays(blockerStart, blockerEnd);
     } else {
       // Blocker activo sin impactDays: mostrar hasta hoy
-      duration = differenceInDays(getTodayInLima(), blockerStart) + 1;
+      duration = countWorkingDays(blockerStart, getTodayInLima());
     }
 
     // Mínimo 1 día de duración
     duration = Math.max(1, duration);
 
     // Solo mostrar si esta dentro del rango visible
-    if (startOffset + duration < 0 || startOffset > totalDays) {
+    const totalWorkingDays = dateColumns.length;
+    if (startOffset + duration < 0 || startOffset > totalWorkingDays) {
       return null;
     }
 
     return {
       left: Math.max(0, startOffset * CELL_WIDTH),
-      width: Math.min(duration * CELL_WIDTH, (totalDays - Math.max(0, startOffset)) * CELL_WIDTH),
+      width: Math.min(duration * CELL_WIDTH, (totalWorkingDays - Math.max(0, startOffset)) * CELL_WIDTH),
     };
   };
 
@@ -1146,7 +1182,7 @@ export function GanttChart({
           </div>
 
           {/* Columna derecha - Gantt */}
-          <div className="flex-1 min-w-0 relative">
+          <div className="relative" style={{ minWidth: dateColumns.length * CELL_WIDTH }}>
             {/* Barras de periodos bloqueados/pausados */}
             {blockerPeriods.map((period) => {
               const barPosition = getBlockerBarPosition(period);
@@ -1259,11 +1295,7 @@ export function GanttChart({
               {dateColumns.map((col, i) => (
                 <div
                   key={i}
-                  className={cn(
-                    "flex-shrink-0 border-r flex flex-col items-center justify-center text-xs text-foreground",
-                    col.isWeekend && "bg-muted-foreground/10",
-                    col.isHoliday && "bg-red-500/20"
-                  )}
+                  className="flex-shrink-0 border-r flex flex-col items-center justify-center text-xs text-foreground"
                   style={{ width: CELL_WIDTH }}
                 >
                   <span className="font-medium">{col.dayNumber}</span>
@@ -1283,11 +1315,7 @@ export function GanttChart({
                   {dateColumns.map((col, i) => (
                     <div
                       key={i}
-                      className={cn(
-                        "flex-shrink-0 border-r",
-                        col.isWeekend && "bg-muted-foreground/10",
-                        col.isHoliday && "bg-red-500/10"
-                      )}
+                      className="flex-shrink-0 border-r"
                       style={{ width: CELL_WIDTH }}
                     />
                   ))}
@@ -1321,10 +1349,11 @@ export function GanttChart({
                         // Calcular rango desde SubItems
                         const dateRange_item = getItemDateRange(activity.code, phase.activities);
                         if (dateRange_item) {
-                          const startOffset = differenceInDays(dateRange_item.startDate, dateRange.start);
+                          const startOffset = getWorkingDayIndex(dateRange_item.startDate);
+                          const workingDays = countWorkingDays(dateRange_item.startDate, dateRange_item.endDate);
                           barPosition = {
                             left: startOffset * CELL_WIDTH,
-                            width: dateRange_item.totalDays * CELL_WIDTH - 4,
+                            width: workingDays * CELL_WIDTH - 4,
                           };
                           isSummaryBar = true;
                           summaryRange = {
@@ -1336,10 +1365,11 @@ export function GanttChart({
                         // Calcular rango desde Items hijos (para secciones como "3" Desarrollo)
                         const dateRange_section = getSectionDateRange(activity.code, phase.activities);
                         if (dateRange_section) {
-                          const startOffset = differenceInDays(dateRange_section.startDate, dateRange.start);
+                          const startOffset = getWorkingDayIndex(dateRange_section.startDate);
+                          const workingDays = countWorkingDays(dateRange_section.startDate, dateRange_section.endDate);
                           barPosition = {
                             left: startOffset * CELL_WIDTH,
-                            width: dateRange_section.totalDays * CELL_WIDTH - 4,
+                            width: workingDays * CELL_WIDTH - 4,
                           };
                           isSummaryBar = true;
                           summaryRange = {
@@ -1370,11 +1400,7 @@ export function GanttChart({
                               key={i}
                               className={cn(
                                 "flex-shrink-0 border-r",
-                                isSelected
-                                  ? "bg-accent/10"
-                                  : col.isWeekend
-                                  ? "bg-muted/30"
-                                  : col.isHoliday && "bg-red-500/10"
+                                isSelected && "bg-accent/10"
                               )}
                               style={{ width: CELL_WIDTH }}
                             />

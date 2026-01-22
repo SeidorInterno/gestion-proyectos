@@ -47,6 +47,36 @@ export const PERMISSIONS = {
     update: ["MANAGER"],
     delete: ["MANAGER"],
   },
+  supportPools: {
+    create: ["MANAGER", "ARQUITECTO_RPA"],
+    read: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    update: ["MANAGER", "ARQUITECTO_RPA"],
+    delete: ["MANAGER"],
+  },
+  supportFlows: {
+    create: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"],
+    read: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    update: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"],
+    delete: ["MANAGER", "ARQUITECTO_RPA"],
+  },
+  tickets: {
+    create: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    read: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    update: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"],
+    delete: ["MANAGER", "ARQUITECTO_RPA"],
+  },
+  ticketComments: {
+    create: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    read: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    update: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"],
+    delete: ["MANAGER", "ARQUITECTO_RPA"],
+  },
+  ticketTime: {
+    create: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    read: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL", "CONSULTOR"],
+    update: ["MANAGER", "ARQUITECTO_RPA", "ANALISTA_FUNCIONAL"],
+    delete: ["MANAGER", "ARQUITECTO_RPA"],
+  },
 } as const;
 
 export type Resource = keyof typeof PERMISSIONS;

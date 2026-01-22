@@ -8,7 +8,17 @@ type NotificationType =
   | "EVENT_ASSIGNED"
   | "ACTIVITY_COMPLETED"
   | "PROJECT_PAUSED"
-  | "PROJECT_RESUMED";
+  | "PROJECT_RESUMED"
+  // Support Pool notifications
+  | "SUPPORT_POOL_ASSIGNED"
+  | "SUPPORT_POOL_LOW_HOURS"
+  | "SUPPORT_POOL_EXHAUSTED"
+  // Ticket notifications
+  | "TICKET_CREATED"
+  | "TICKET_ASSIGNED"
+  | "TICKET_STAGE_CHANGE"
+  | "TICKET_COMMENT"
+  | "TICKET_RESOLVED";
 
 interface CreateNotificationParams {
   type: NotificationType;
