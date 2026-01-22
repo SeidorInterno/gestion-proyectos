@@ -63,6 +63,11 @@ interface Pool {
   pep: string;
   status: SupportPoolStatus;
   totalHours: number;
+  autoAcceptThreshold: number | null;
+  clientId: string;
+  projectId: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
   usedHours: number;
   remainingHours: number;
   usedPercentage: number;
